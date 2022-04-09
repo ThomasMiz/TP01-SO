@@ -3,17 +3,17 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <poll.h>
 #include "app.h"
-#include "./../shared/shared.h"
 
 /** Spawns the specified amount of workers, creates the pipes to
  * send tasks to them and places the write end fd of those pipes
  * in the specified array. */
-void spawnWorkers(unsigned int workerCount, int pipeWriteFds[], int* resultPipeReadFd);
+void spawnWorkers(unsigned int workerCount, int requestPipeWriteFds[], int resultPipeReadFds[]);
 
 int main(int argc, const char* argv[]) {
 	if (argc <= 1) {
-		fprintf(stderr, "Error: no input files.\n");
+		fprintf(stderr, "[APP] Error: no input files.\n");
 		return EXIT_CODE_NOT_ENOUGH_PARAMS;
 	}
 	
@@ -23,9 +23,9 @@ int main(int argc, const char* argv[]) {
 	if (workerCount > MAX_WORKERS)
 		workerCount = MAX_WORKERS;
 	
-	int resultPipeFd;
+	int resultPipeReadFds[workerCount];
 	int requestPipeWriteFds[workerCount];
-	spawnWorkers(workerCount, requestPipeWriteFds, &resultPipeFd);
+	spawnWorkers(workerCount, requestPipeWriteFds, resultPipeReadFds);
 	
 	fprintf(stderr, "App process sending some shit to workers\n");
 	
@@ -36,69 +36,86 @@ int main(int argc, const char* argv[]) {
 	}
 	
 	// Pipe test: send to STDOUT what comes in through results.
-	while (1) {
-		char c;
-		int n;
-		if ((n = read(resultPipeFd, &c, 1)) == -1) {
-			fprintf(stderr, "App process found error while reading: ");
-			perror(NULL);
-			break;
+	
+	// Make a list of the fds and events we want to monitor.
+	struct pollfd fds[workerCount];
+	for (int i=0; i<workerCount; i++) {
+		fds[i].fd = resultPipeReadFds[i];
+		fds[i].events = POLLIN;
+		fds[i].revents = 0;
+	}
+	
+	int remainingWorkers = workerCount;
+	while (remainingWorkers > 0) {
+		// We wait until something happens in one of our fds.
+		int pollres = poll(fds, remainingWorkers, -1);
+		
+		if (pollres <= 0) {
+			fprintf(stderr, "[APP] poll() returned value <= 0. Ignoring."); // TODO: remove print?
+			continue;
 		}
 		
-		if (n == 0)
-			break;
-		
-		write(STDOUT_FILENO, &c, n);
+		for (int i=0; pollres != 0 && i < remainingWorkers; i++) {
+			if (fds[i].revents) {
+				pollres--;
+				if (fds[i].revents & POLLIN) {
+					char c;
+					write(STDOUT_FILENO, &c, read(fds[i].fd, &c, 1));
+				} else {
+					// Remove this fd from the list.
+					remainingWorkers--;
+					if (remainingWorkers != 0)
+						fds[i] = fds[remainingWorkers]; // Remove via swap
+					break;
+				}
+			}
+		}
 	}
 	
 	printf("\nApp process closing.\n");
 	return 0;
 }
 
-void spawnWorkers(unsigned int workerCount, int pipeWriteFds[], int* resultPipeReadFd) {
-	int tmpFd[2];
-	
-	// We create the pipe through which results are sent back.
-	if (pipe(tmpFd)) {
-		fprintf(stderr, "Error: Failed to create result pipe: ");
-		perror(NULL);
-		printf("Aborting.\n");
-		exit(EXIT_CODE_CREATE_PIPE_FAILED);
-	}
-	
-	*resultPipeReadFd = tmpFd[0];
-	int resultPipeWriteFd = tmpFd[1];
+void spawnWorkers(unsigned int workerCount, int requestPipeWriteFds[], int resultPipeReadFds[]) {
+	int requestPipe[2];
+	int resultPipe[2];
 	
 	for (unsigned int i=0; i<workerCount; i++) {
-		// We attempt to create a pipe and handle any errors.
-		if (pipe(tmpFd)) {
-			fprintf(stderr, "Error: Failed to create pipe for worker %i: ", i);
+		// We attempt to create the request pipe and handle any errors.
+		if (pipe(requestPipe)) {
+			fprintf(stderr, "[APP] Error: Failed to create request pipe for worker %i: ", i);
 			perror(NULL);
-			printf("Aborting.\n");
 			exit(EXIT_CODE_CREATE_PIPE_FAILED);
 		}
 		
-		pipeWriteFds[i] = tmpFd[1];
+		// We attempt to create the result pipe and handle any errors.
+		if (pipe(resultPipe)) {
+			fprintf(stderr, "[APP] Error: Failed to create result pipe for worker %i: ", i);
+			perror(NULL);
+			exit(EXIT_CODE_CREATE_PIPE_FAILED);
+		}
+		
+		requestPipeWriteFds[i] = requestPipe[1];
+		resultPipeReadFds[i] = resultPipe[0];
 		
 		// We create the child process and handle any errors.
 		pid_t forkResult = fork();
 		if (forkResult == -1) {
-			fprintf(stderr, "Error: Failed to create fork for worker %i: ", i);
+			fprintf(stderr, "[APP] Error: Failed to create fork for worker %i: ", i);
 			perror(NULL);
-			printf("Aborting.\n");
 			exit(EXIT_CODE_FORK_FAILED);
 		}
 		
-		// The child process redirects fds and calls workerMain.
+		// The child process redirects fds and exec-s the worker executable.
 		if (forkResult == 0) {
 			// Close the write end of the request pipe.
-			close(tmpFd[1]);
+			close(requestPipe[1]);
 			// Close the read end of the result pipe.
-			close(*resultPipeReadFd);
+			close(resultPipe[0]);
 			// Redirect STDOUT to the write end of the result pipe.
-			dup2(resultPipeWriteFd, STDOUT_FILENO);
+			dup2(resultPipe[1], STDOUT_FILENO);
 			// Redirect STDIN to the read end of the request pipe.
-			dup2(tmpFd[0], STDIN_FILENO);
+			dup2(requestPipe[0], STDIN_FILENO);
 			
 			// The only parameter the worker receives is it's worker id.
 			char idString[12] = {0};
@@ -106,17 +123,15 @@ void spawnWorkers(unsigned int workerCount, int pipeWriteFds[], int* resultPipeR
 			execl(WORKER_EXEC_FILE, WORKER_EXEC_FILE, idString, NULL);
 			
 			// This only runs if the exec fails.
-			fprintf(stderr, "Worker id=%u failed to exec %s:", i, WORKER_EXEC_FILE);
+			fprintf(stderr, "[WORKER %u] Failed to exec %s: ", i, WORKER_EXEC_FILE);
 			perror(NULL);
 			exit(-1);
 		}
 		
-		// The parent process closes the read end of the request
-		// pipe and continues.
-		close(tmpFd[0]);
+		// The parent process now closes the pipe ends it doesn't need.
+		// Close the read end of the request pipe.
+		close(requestPipe[0]);
+		// Close the write end of the result pipe.
+		close(resultPipe[1]);
 	}
-	
-	// Close the write end of the result pipe. The parent process
-	// doesn't need to write to it.
-	close(resultPipeWriteFd);
 }

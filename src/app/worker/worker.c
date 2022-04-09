@@ -6,7 +6,7 @@
 int main(int argc, const char* argv[]) {
 	
 	if (argc <= 1) {
-		fprintf(stderr, "Error: not enough parameters. Workers must receive their id as their only parameter.\n");
+		fprintf(stderr, "[Worker] Error: not enough parameters. Workers must receive their id as their only parameter.\n");
 		exit(EXIT_CODE_NOT_ENOUGH_PARAMS);
 	}
 	
@@ -17,9 +17,9 @@ int main(int argc, const char* argv[]) {
 		char c;
 		int n = read(STDIN_FILENO, &c, 1);
 		if (n == -1) {
-			fprintf(stderr, "Worker id %u error while reading: ", workerId);
+			fprintf(stderr, "[Worker %u] Error while reading: ", workerId);
 			perror(NULL);
-			break;
+			continue;
 		}
 		
 		// Read returns 0 when the end of the file was reached.
