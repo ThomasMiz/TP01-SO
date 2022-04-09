@@ -3,7 +3,15 @@
 #include <unistd.h>
 #include "worker.h"
 
-void workerMain(unsigned int workerId) {
+int main(int argc, const char* argv[]) {
+	
+	if (argc <= 1) {
+		fprintf(stderr, "Error: not enough parameters. Workers must receive their id as their only parameter.\n");
+		exit(EXIT_CODE_NOT_ENOUGH_PARAMS);
+	}
+	
+	unsigned int workerId = atoi(argv[1]);
+	
 	// Pipe test: just uppercase what comes through STDIN to STDOUT.
 	while (1) {
 		char c;

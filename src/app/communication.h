@@ -1,9 +1,5 @@
-#ifndef _WORKER_H_
-#define _WORKER_H_
-
-/** This is the function workers call on creation. This should not
- * return. */
-void workerMain(unsigned int workerId);
+#ifndef _COMMUNICATION_H_
+#define _COMMUNICATION_H_
 
 /** Represents a request sent from the APP process to a WORKER
  * process. This does not include the filepath, which is sent

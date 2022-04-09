@@ -4,7 +4,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "app.h"
-#include "worker.h"
 #include "./../shared/shared.h"
 
 /** Spawns the specified amount of workers, creates the pipes to
@@ -65,7 +64,6 @@ void spawnWorkers(unsigned int workerCount, int pipeWriteFds[], int* resultPipeR
 		perror(NULL);
 		printf("Aborting.\n");
 		exit(EXIT_CODE_CREATE_PIPE_FAILED);
-		return;
 	}
 	
 	*resultPipeReadFd = tmpFd[0];
@@ -78,7 +76,6 @@ void spawnWorkers(unsigned int workerCount, int pipeWriteFds[], int* resultPipeR
 			perror(NULL);
 			printf("Aborting.\n");
 			exit(EXIT_CODE_CREATE_PIPE_FAILED);
-			return;
 		}
 		
 		pipeWriteFds[i] = tmpFd[1];
@@ -90,7 +87,6 @@ void spawnWorkers(unsigned int workerCount, int pipeWriteFds[], int* resultPipeR
 			perror(NULL);
 			printf("Aborting.\n");
 			exit(EXIT_CODE_FORK_FAILED);
-			return;
 		}
 		
 		// The child process redirects fds and calls workerMain.
@@ -103,9 +99,16 @@ void spawnWorkers(unsigned int workerCount, int pipeWriteFds[], int* resultPipeR
 			dup2(resultPipeWriteFd, STDOUT_FILENO);
 			// Redirect STDIN to the read end of the request pipe.
 			dup2(tmpFd[0], STDIN_FILENO);
-			workerMain(i);
-			exit(-1); // Just in case
-			return;
+			
+			// The only parameter the worker receives is it's worker id.
+			char idString[12] = {0};
+			sprintf(idString, "%u", i);
+			execl(WORKER_EXEC_FILE, WORKER_EXEC_FILE, idString, NULL);
+			
+			// This only runs if the exec fails.
+			fprintf(stderr, "Worker id=%u failed to exec %s:", i, WORKER_EXEC_FILE);
+			perror(NULL);
+			exit(-1);
 		}
 		
 		// The parent process closes the read end of the request
