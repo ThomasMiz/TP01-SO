@@ -1,12 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <poll.h>
 #include "workerManagerADT.h"
-#include "communication.h"
 #include "constants.h"
 #include "./../shared/memhelper.h"
 
@@ -171,13 +169,24 @@ void sendWorkerTask(workerManagerADT manager, unsigned int workerId, unsigned in
 		return;
 	}
 	
+	if (manager->requestPipeWriteFds[workerId] < 0) {
+		fprintf(stderr, "Worker manager error: sendWorkerTask to id %u, but worker is closed.\n", workerId);
+		return;
+	}
+	
 	TWorkerRequest request;
 	request.taskId = taskId;
 	request.filepathLength = strlen(filepath);
-	write(manager->requestPipeWriteFds[workerId], &request, sizeof(TWorkerRequest));
-	write(manager->requestPipeWriteFds[workerId], filepath, request.filepathLength);
-	// TODO: Instead of using write(), wrap it in a function that ensures ALL the
-	// bytes were written? Only the int returned amount of bytes are written!
+	
+	// Attempt to do both writes. If the first one fails, the second one is skipped.
+	// writeResult will be 1 if both writes succeeded.
+	int writeResult = writeFull(manager->requestPipeWriteFds[workerId], &request, sizeof(TWorkerRequest))
+		&& writeFull(manager->requestPipeWriteFds[workerId], filepath, request.filepathLength);
+	
+	// Handle any possible errors during write.
+	if (!writeResult) {
+		fprintf(stderr, "Worker manager error: sendWorkerTask to id %u failed to write on it's request pipe.\n", workerId);
+	}
 }
 
 void setWorkerResultCallback(workerManagerADT manager, TWorkerResultCallback callback, void* arg) {
@@ -201,7 +210,6 @@ int closeWorker(workerManagerADT manager, unsigned int workerId) {
 		return 0;
 	}
 	
-	// TODO: change all close() calls to use a wrapper that ensures close() runs even if interrupted by a signal!
 	if (close(manager->requestPipeWriteFds[workerId])) {
 		fprintf(stderr, "Worker manager warning: failed to close request pipe write end for worker %u.\n", workerId);
 	}
