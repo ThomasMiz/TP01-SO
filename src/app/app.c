@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "constants.h"
+#include "./../shared/constants.h"
 #include "workerManagerADT.h"
 
 void onWorkerResult(workerManagerADT sender, unsigned int workerId, const TWorkerResult* result, void* arg);

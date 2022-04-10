@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <poll.h>
 #include "workerManagerADT.h"
-#include "constants.h"
+#include "./../shared/constants.h"
 #include "./../shared/memhelper.h"
 
 struct workerManagerCDT {

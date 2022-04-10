@@ -3,8 +3,6 @@
 
 #include <stddef.h>
 
-#define EXIT_CODE_NOT_ENOUGH_MEMORY 4
-
 /**
  * Provides some basic wrappers around memory management functions
  * to help with allocating memory.

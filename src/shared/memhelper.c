@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include "memhelper.h"
+#include "constants.h"
 
 #define READ_MAX_FAILS 3
 #define WRITE_MAX_FAILS 3

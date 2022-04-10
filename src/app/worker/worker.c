@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "./../communication.h"
-#include "./../constants.h"
+#include "./../../shared/constants.h"
 #include "./../../shared/memhelper.h"
 
 /**
