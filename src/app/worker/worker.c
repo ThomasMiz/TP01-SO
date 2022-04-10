@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "worker.h"
 #include "./../communication.h"
 #include "./../constants.h"
 #include "./../../shared/memhelper.h"
@@ -62,13 +61,6 @@ int readWorkerRequest(int fd, TWorkerRequest* request, char** filepathPtr) {
 
 int main(int argc, const char* argv[]) {
 	
-	if (argc <= 1) {
-		fprintf(stderr, "Worker Error: not enough parameters. Workers must receive their id as their only parameter.\n");
-		exit(EXIT_CODE_NOT_ENOUGH_PARAMS);
-	}
-	
-	unsigned int workerId = atoi(argv[1]);
-	
 	TWorkerRequest request;
 	char* filepath;
 	while (readWorkerRequest(STDIN_FILENO, &request, &filepath)) {
@@ -77,8 +69,8 @@ int main(int argc, const char* argv[]) {
 		TWorkerResult result;
 		result.taskId = request.taskId;
 		result.status = Sat;
-		result.cantidadClausulas = workerId;
-		result.cantidadVariables = request.filepathLength;
+		result.cantidadClausulas = request.filepathLength;
+		result.cantidadVariables = 420;
 		result.timeNanoseconds = 0;
 		write(STDOUT_FILENO, &result, sizeof(TWorkerResult)); // TODO: wrap to ensure all bytes written
 	}

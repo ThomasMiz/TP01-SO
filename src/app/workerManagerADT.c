@@ -102,10 +102,7 @@ static void performWorkerSpawning(workerManagerADT manager) {
 			// Redirect STDIN to the read end of the request pipe.
 			dup2(requestPipe[0], STDIN_FILENO);
 			
-			// The only parameter the worker receives is it's worker id.
-			char idString[12] = {0};
-			sprintf(idString, "%u", i);
-			execl(WORKER_EXEC_FILE, WORKER_EXEC_FILE, idString, NULL);
+			execl(WORKER_EXEC_FILE, WORKER_EXEC_FILE, NULL);
 			
 			// This only runs if the exec fails.
 			fprintf(stderr, "Worker with id %u failed to exec %s: ", i, WORKER_EXEC_FILE);
