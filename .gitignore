@@ -56,6 +56,11 @@ dkms.conf
 *.ini
 *.csv
 
+# Our executable output files
+solve
+worker
+vista
+
 #Visual Studio files
 .vs
 [Bb]in/

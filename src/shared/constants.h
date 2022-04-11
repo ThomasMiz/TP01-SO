@@ -2,7 +2,7 @@
 #define _CONSTANTS_H_
 
 /** The name of the executable file containing the worker process. */
-#define WORKER_EXEC_FILE "worker.out"
+#define WORKER_EXEC_FILE "./worker"
 
 #define RESULT_OUTPUT_FILE "output.csv"
 

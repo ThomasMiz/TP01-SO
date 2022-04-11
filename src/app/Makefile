@@ -3,8 +3,8 @@ include ./../Makefile.inc
 SOURCES=$(wildcard *.c)
 WORKER_SOURCES=$(wildcard ./worker/*.c)
 SOURCES_SHARED=$(wildcard ./../shared/*.c)
-OUTPUT_FILE=./../solve.out
-WORKER_OUTPUT_FILE=./../worker.out
+OUTPUT_FILE=./../../solve
+WORKER_OUTPUT_FILE=./../../worker
 
 all:
 	$(GCC) $(GCCFLAGS) $(SOURCES) $(SOURCES_SHARED) -o $(OUTPUT_FILE)
