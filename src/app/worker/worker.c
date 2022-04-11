@@ -26,7 +26,7 @@ int readWorkerRequest(int fd, TWorkerRequest* request, char** filepathPtr) {
 	char* s = mallocOrExit(request->filepathLength + 1);
 	
 	if (!readFull(fd, s, request->filepathLength)) {
-		fprintf(stderr, "Worker error: failed to read filepath of length %u.\n", request->filepathLength);
+		fprintf(stderr, "[Worker] Error: Failed to read filepath of length %u.\n", request->filepathLength);
 		free(s); // Free the string, the user is only responsible for it when we return 1.
 		return 0;
 	}

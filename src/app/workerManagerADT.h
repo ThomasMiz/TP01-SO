@@ -46,6 +46,12 @@ unsigned int getRemainingWorkerCount(workerManagerADT manager);
 int isWorkerOpen(workerManagerADT manager, unsigned int workerId);
 
 /**
+ * Gets the amount of sent tasks the worker with the specified id has
+ * with pending results.
+ */
+unsigned int getWorkerRemainingTasks(workerManagerADT manager, unsigned int workerId);
+
+/**
  * Sends a task to the specified worker.
  */
 void sendWorkerTask(workerManagerADT manager, unsigned int workerId, unsigned int taskId, const char* filepath);

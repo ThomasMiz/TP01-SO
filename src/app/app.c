@@ -27,7 +27,7 @@ int main(int argc, const char* argv[]) {
 	
 	// Create a new workerManager with the desired amount of workers.
 	workerManagerADT workerManager = newWorkerManager(decideWorkerCount(appContext.fileCount));
-	fprintf(stderr, "Number of workers: %u\n", getWorkerCount(workerManager));// TODO: remove debug print
+	fprintf(stderr, "[Master] Number of workers: %u\n", getWorkerCount(workerManager));// TODO: remove debug print
 	
 	// Set the callbacks on the workerManager. The parameter for the
 	// callbacks is a pointer to our app context struct. This is memory
@@ -40,7 +40,12 @@ int main(int argc, const char* argv[]) {
 	// Send initial tasks to the workers. This function also decides how many per worker.
 	sendInitialWorkerTasks(workerManager, &appContext);
 	
-	closeRemainingWorkers(workerManager); // TODO: you know what to do here, Thomas.
+	// sendInitialWorkerTasks() might have sent all the files (if, for example,
+	// there were very few files specified). In which case, we close all workers.
+	if (appContext.fileCount == appContext.filesSent)
+		closeRemainingWorkers(workerManager);
+	
+	// This function will process all the workers and block until they're all done.
 	pollUntilFinished(workerManager);
 	
 	// We free up all resources used by the workerManager.
@@ -51,9 +56,25 @@ int main(int argc, const char* argv[]) {
 }
 
 static void onWorkerResult(workerManagerADT sender, unsigned int workerId, const TWorkerResult* result, void* arg) {
+	TAppContext* appContext = arg;
+	appContext->resultsReceived++;
+	
+	// TODO: remove debug prints
 	fprintf(stderr, "[Master] Worker %u returned result: taskId=%u, cantidadClausulas=%u, cantidadVariables=%u.\n", workerId, result->taskId, result->cantidadClausulas, result->cantidadVariables);
+	
+	// If there are more files to send and the worker has no pending
+	// tasks, we send it a new task.
+	if (getWorkerRemainingTasks(sender, workerId) == 0 && appContext->filesSent < appContext->fileCount) {
+		
+		unsigned int newTaskId = appContext->filesSent++;
+		sendWorkerTask(sender, workerId, newTaskId, appContext->files[newTaskId]);
+		
+		// If that was the last file, we close all remaining workers.
+		if (appContext->filesSent == appContext->fileCount)
+			closeRemainingWorkers(sender);
+	}
 }
 
 static void onWorkerClosed(workerManagerADT sender, unsigned int workerId, void* arg) {
-	fprintf(stderr, "[Master] Worker %u closed.\n", workerId);
+	fprintf(stderr, "[Master] Worker %u closed.\n", workerId); // TODO: remove debug prints
 }
