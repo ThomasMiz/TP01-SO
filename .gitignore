@@ -54,6 +54,7 @@ dkms.conf
 # Some other things
 *.bash_history
 *.ini
+*.csv
 
 #Visual Studio files
 .vs
