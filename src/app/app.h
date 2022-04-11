@@ -1,6 +1,8 @@
 #ifndef _APP_H_
 #define _APP_H_
 
+#include <stdio.h>
+
 /** Stores context information about the app process. */
 typedef struct {
 	/** An array with the files to process, of length fileCount. */
@@ -17,6 +19,12 @@ typedef struct {
 	
 	/** The amount of results received from workers. */
 	unsigned int resultsReceived;
+	
+	/**
+	 * The handle of the file to which result outputs are written.
+	 * Should only be used in output.c.
+	 */
+	FILE* resultOutputFile;
 } TAppContext;
 
 #endif

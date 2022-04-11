@@ -2,6 +2,7 @@
 #include "app.h"
 #include "appHelper.h"
 #include "workerManagerADT.h"
+#include "output.h"
 #include "./../shared/constants.h"
 
 
@@ -45,11 +46,17 @@ int main(int argc, const char* argv[]) {
 	if (appContext.fileCount == appContext.filesSent)
 		closeRemainingWorkers(workerManager);
 	
+	// Tell output.c to prepare for outputting results.
+	onOutputBegin(&appContext);
+	
 	// This function will process all the workers and block until they're all done.
 	pollUntilFinished(workerManager);
 	
 	// We free up all resources used by the workerManager.
 	freeWorkerManager(workerManager);
+	
+	// Tell output.c that there are no more results to output.
+	onOutputEnd(&appContext);
 	
 	fprintf(stderr, "[Master] Master process closing.\n"); // TODO: remove debug prints
 	return 0;
@@ -73,8 +80,21 @@ static void onWorkerResult(workerManagerADT sender, unsigned int workerId, const
 		if (appContext->filesSent == appContext->fileCount)
 			closeRemainingWorkers(sender);
 	}
+	
+	// Send the result to output.c
+	onOutputResult(appContext, workerId, result, appContext->files[result->taskId]);
 }
 
 static void onWorkerClosed(workerManagerADT sender, unsigned int workerId, void* arg) {
 	fprintf(stderr, "[Master] Worker %u closed.\n", workerId); // TODO: remove debug prints
 }
+
+typedef struct {
+	unsigned int workerId;
+	unsigned int taskId;
+	enum SatResult status;
+	unsigned int cantidadClausulas;
+	unsigned int cantidadVariables;
+	unsigned long timeNanoseconds;
+	const char* filepath;
+} TResult;

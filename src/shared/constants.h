@@ -4,6 +4,8 @@
 /** The name of the executable file containing the worker process. */
 #define WORKER_EXEC_FILE "worker.out"
 
+#define RESULT_OUTPUT_FILE "output.csv"
+
 /**
  * A hard limit on the maximum amount of workers that can be spawned
  * by an app process. Set to -1 to disable this limit (this is ok
