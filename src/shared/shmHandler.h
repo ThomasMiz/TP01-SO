@@ -1,18 +1,23 @@
 #ifndef _SHMHANDLER_H_
 #define _SHMHANDLER_H_
 
+#include <semaphore.h>
+
+#define SHM_SIZE 4096 //This must be bigger than sizeof(TSharedMemContext)
+
 typedef struct {
-	int shmFDes;
+    sem_t semCanRead;
+    sem_t semCanWrite;
+	size_t bytesSent;
+} TSharedMemContext;
+
+typedef struct {
     void* shmStart;
-	int shmSize;
-    char* shmPath;
+	size_t shmSize;
 	void* dataBuffer;
 	size_t dataBufferSize;
-	
-    sem_t semCanRead;
-    sem_t semCanWait;
-} Data;
-
-typedef struct Data* DataPtr;
+	char* shmPath;
+	int shmFDes;
+} TSharedMem;
 
 #endif
