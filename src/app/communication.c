@@ -8,8 +8,8 @@ const char* satResultToString(enum SatResult satResult) {
 		case Unsat:
 			return "Unsat";
 			
-		case FileOpenFailed:
-			return "Couldn't open file";
+		case Error:
+			return "Error";
 			
 		default:
 			return "Unknown";

@@ -55,6 +55,7 @@ dkms.conf
 *.bash_history
 *.ini
 *.csv
+*.cnf
 
 # Our executable output files
 solve
