@@ -58,9 +58,9 @@ dkms.conf
 *.cnf
 
 # Our executable output files
-solve
-worker
-vista
+./solve
+./worker
+./vista
 
 #Visual Studio files
 .vs
