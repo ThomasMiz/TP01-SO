@@ -101,6 +101,13 @@ static void performWorkerSpawning(workerManagerADT manager) {
 			close(requestPipe[1]);
 			// Close the read end of the result pipe.
 			close(resultPipe[0]);
+			
+			// Close all open fds the parent had for previous workers.
+			for (int j=0; j<i; j++) {
+				close(manager->requestPipeWriteFds[j]);
+				close(manager->pollFds[j].fd);
+			}
+			
 			// Redirect STDOUT to the write end of the result pipe.
 			dup2(resultPipe[1], STDOUT_FILENO);
 			// Redirect STDIN to the read end of the request pipe.
