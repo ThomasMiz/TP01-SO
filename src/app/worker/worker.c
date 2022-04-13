@@ -33,7 +33,7 @@ int main(int argc, const char* argv[]) {
 		free(filepath);
 		
 		result.taskId = request.taskId;
-		write(STDOUT_FILENO, &result, sizeof(TWorkerResult)); // TODO: wrap to ensure all bytes written
+		writeFull(STDOUT_FILENO, &result, sizeof(TWorkerResult));
 	}
 	
 	exit(0);

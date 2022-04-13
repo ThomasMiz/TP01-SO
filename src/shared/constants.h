@@ -26,6 +26,11 @@
  */
 #define LEAVE_ONE_PROCESSOR 1
 
+/**
+ * Define this to 1 to compile with debug prints enabled.
+ */
+#define DEBUG_PRINTS 0
+
 #define EXIT_CODE_NOT_ENOUGH_PARAMS 1
 #define EXIT_CODE_CREATE_PIPE_FAILED 2
 #define EXIT_CODE_FORK_FAILED 3

@@ -28,7 +28,10 @@ int main(int argc, const char* argv[]) {
 	
 	// Create a new workerManager with the desired amount of workers.
 	workerManagerADT workerManager = newWorkerManager(decideWorkerCount(appContext.fileCount));
-	fprintf(stderr, "[Master] Number of workers: %u\n", getWorkerCount(workerManager));// TODO: remove debug print
+	
+#if DEBUG_PRINTS == 1
+	fprintf(stderr, "[Master] Number of workers: %u\n", getWorkerCount(workerManager));
+#endif
 	
 	// Set the callbacks on the workerManager. The parameter for the
 	// callbacks is a pointer to our app context struct. This is memory
@@ -58,7 +61,10 @@ int main(int argc, const char* argv[]) {
 	// Tell output.c that there are no more results to output.
 	onOutputEnd(&appContext);
 	
-	fprintf(stderr, "[Master] Master process closing.\n"); // TODO: remove debug prints
+#if DEBUG_PRINTS == 1
+	fprintf(stderr, "[Master] Master process closing.\n");
+#endif
+
 	return 0;
 }
 
@@ -66,9 +72,10 @@ static void onWorkerResult(workerManagerADT sender, unsigned int workerId, const
 	TAppContext* appContext = arg;
 	appContext->resultsReceived++;
 	
-	// TODO: remove debug prints
+#if DEBUG_PRINTS == 1
 	fprintf(stderr, "[Master] Worker %u returned result: taskId=%u, cantidadClausulas=%u, cantidadVariables=%u.\n", workerId, result->taskId, result->cantidadClausulas, result->cantidadVariables);
-	
+#endif
+
 	// If there are more files to send and the worker has no pending
 	// tasks, we send it a new task.
 	if (getWorkerRemainingTasks(sender, workerId) == 0 && appContext->filesSent < appContext->fileCount) {
@@ -86,15 +93,7 @@ static void onWorkerResult(workerManagerADT sender, unsigned int workerId, const
 }
 
 static void onWorkerClosed(workerManagerADT sender, unsigned int workerId, void* arg) {
-	fprintf(stderr, "[Master] Worker %u closed.\n", workerId); // TODO: remove debug prints
+#if DEBUG_PRINTS == 1
+	fprintf(stderr, "[Master] Worker %u closed.\n", workerId);
+#endif
 }
-
-typedef struct {
-	unsigned int workerId;
-	unsigned int taskId;
-	enum SatResult status;
-	unsigned int cantidadClausulas;
-	unsigned int cantidadVariables;
-	unsigned long timeNanoseconds;
-	const char* filepath;
-} TResult;

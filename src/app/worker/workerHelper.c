@@ -78,7 +78,6 @@ void interpretMinisatOutput(FILE* f, TWorkerResult* result) {
 	
 	if (readAnotherInt(f, &result->cantidadVariables) && readAnotherInt(f, &result->cantidadClausulas)
 		&& readTimeNanoseconds(f, &result->timeNanoseconds)) {
-		
 		result->status = readIsSat(f);
 	} else {
 		result->status = Error;
