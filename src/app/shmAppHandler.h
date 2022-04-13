@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "./../shared/shmHandler.h"
 
-void resourceInit(char* shmPath, TSharedMem* ptrInfoSave);
+void resourceInit(char* shmPath, size_t shmSize, TSharedMem* ptrInfoSave);
 void resourceUnlink(void* shmStart, TSharedMem* ptrInfoSave);
 
 #endif

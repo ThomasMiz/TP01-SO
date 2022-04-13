@@ -14,38 +14,36 @@
 #include <string.h>
 #include "shmAppHandler.h"
 
-void resourceInit(char* shmPath, TSharedMem* ptrInfoSave) {
+void resourceInit(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
 
     // This practice was recommended in class to avoid issues when the program was interrupted and relaunched (not beeing
 	// able to correctly close and clean shmem)
-	shm_unlink(shmPath);
+	shm_unlink(shmName);
 
 	// Open the shared memory object
-	int shmFDes = shm_open(shmPath, O_CREAT | O_RDWR | O_EXCL, S_IWUSR | S_IRUSR);
+	int shmFDes = shm_open(shmName, O_CREAT | O_RDWR | O_EXCL, S_IWUSR | S_IRUSR);
 	if(shmFDes < 0) {
 		perror("shm_open failed");
 		exit(EXIT_FAILURE);
 	}
 
 	// Preallocate a shared memory area
-	if(ftruncate(shmFDes, SHM_SIZE + sizeof(TSharedMemContext)) == -1) {
+	if(ftruncate(shmFDes, shmSize + sizeof(TSharedMemContext)) == -1) {
 		perror("ftruncate failed");
     	exit(EXIT_FAILURE);
 	}
-	void* shmStart = mmap(NULL, SHM_SIZE + sizeof(TSharedMemContext), PROT_WRITE | PROT_READ, MAP_SHARED, shmFDes, 0);
+	void* shmStart = mmap(NULL, shmSize + sizeof(TSharedMemContext), PROT_WRITE | PROT_READ, MAP_SHARED, shmFDes, 0);
 	if(shmStart == MAP_FAILED) {
 		perror("mmap failed");
     	exit(EXIT_FAILURE);
 	}
 	
-	TSharedMem sharedMem;
-	sharedMem.shmStart = shmStart;
-	sharedMem.shmSize = SHM_SIZE;
-	sharedMem.shmPath=shmPath;
-	sharedMem.shmFDes = shmFDes;
-	sharedMem.dataBuffer = shmStart + sizeof(TSharedMemContext);
-	sharedMem.dataBufferSize = SHM_SIZE - sizeof(TSharedMemContext);
-	*ptrInfoSave = sharedMem;	//al ptr (UP_CHANGES)
+	ptrInfoSave->shmStart = shmStart;
+	ptrInfoSave->shmSize = shmSize;
+	ptrInfoSave->shmName= shmName;
+	ptrInfoSave->shmFDes = shmFDes;
+	ptrInfoSave->dataBuffer = shmStart + sizeof(TSharedMemContext);
+	ptrInfoSave->dataBufferSize = shmSize - sizeof(TSharedMemContext);
 	
 	TSharedMemContext* sharedMemContext = shmStart;
 
@@ -60,17 +58,17 @@ void resourceInit(char* shmPath, TSharedMem* ptrInfoSave) {
     }
 	
 	// to stdout shared memory path
-	write(STDOUT_FILENO, shmPath, strlen(shmPath) + 1);
+	write(STDOUT_FILENO, shmName, strlen(shmName) + 1);
 }
 
-void resourceUnlink(void* shmStart, TSharedMem* ptrInfoSave) {
+void resourceUnlink(void* shmStart, TSharedMem* ptrInfo) {
 	
 	TSharedMemContext* sharedMemContext = shmStart;
 
 	sem_destroy(&sharedMemContext->semCanRead);
 	sem_destroy(&sharedMemContext->semCanWrite);
-	munmap(ptrInfoSave->shmStart, ptrInfoSave->shmSize + sizeof(TSharedMemContext));
-	close(ptrInfoSave->shmFDes);
-	shm_unlink(ptrInfoSave->shmPath);
+	munmap(ptrInfo->shmStart, ptrInfo->shmSize + sizeof(TSharedMemContext));
+	close(ptrInfo->shmFDes);
+	shm_unlink(ptrInfo->shmName);
 
 }
