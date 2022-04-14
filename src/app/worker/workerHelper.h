@@ -8,14 +8,13 @@
  * Attempts to read another request from a given fd.
  * Blocks until a request is received, or the fd ends.
  * 
- * A new string is allocated for the received file's path and
- * this pointer is placed in filepathPtr. The user of this
- * function is responsible for freeing this string from memory
- * but only if the function returned 1.
+ * filepathBuf and filepathBufLen are the pointer to and size of
+ * the buffer in which the filepath read will be placed. If this
+ * buffer is not large enough, it will be realloc-ed.
  * 
  * Returns 1 if a request was read, 0 if end of file was reached.
  */
-int readWorkerRequest(int fd, TWorkerRequest* request, char** filepathPtr);
+int readWorkerRequest(int fd, TWorkerRequest* request, char** filepathBuf, size_t* filepathBufLen);
 
 /***
  * Interprets the output of the grep-ed minisat and writes

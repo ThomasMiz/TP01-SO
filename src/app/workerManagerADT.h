@@ -21,6 +21,8 @@ typedef void (*TWorkerClosedCallback)(workerManagerADT sender, unsigned int work
 /**
  * Creates a new workerManagerADT and spawns the specified amount of
  * workers.
+ *
+ * Returns NULL on failure.
  */
 workerManagerADT newWorkerManager(unsigned int workerCount);
 

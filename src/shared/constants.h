@@ -35,6 +35,7 @@
 #define EXIT_CODE_CREATE_PIPE_FAILED 2
 #define EXIT_CODE_FORK_FAILED 3
 #define EXIT_CODE_NOT_ENOUGH_MEMORY 4
+#define EXIT_CODE_EXEC_FAILED 5
 
 /**
 * Define of the max quantity of bytes that can be asigned to the SHM 

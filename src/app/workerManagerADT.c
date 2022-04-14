@@ -64,8 +64,10 @@ struct workerManagerCDT {
  * The write end of the request pipes are written to the manager's
  * requestPipeWriteFds array, while the read ends of the result
  * pipes go to pollFds[i].fd.
+ *
+ * Returns 1 if the operation succeeded, 0 otherwise.
  */
-static void performWorkerSpawning(workerManagerADT manager) {
+static int performWorkerSpawning(workerManagerADT manager) {
 	int requestPipe[2];
 	int resultPipe[2];
 	
@@ -74,25 +76,28 @@ static void performWorkerSpawning(workerManagerADT manager) {
 		if (pipe(requestPipe)) {
 			fprintf(stderr, "[Master] Worker manager error: Failed to create request pipe for worker %i: ", i);
 			perror(NULL);
-			exit(EXIT_CODE_CREATE_PIPE_FAILED);
+			return 0;
 		}
 		
 		// We attempt to create the result pipe and handle any errors.
 		if (pipe(resultPipe)) {
 			fprintf(stderr, "[Master] Worker manager error: Failed to create result pipe for worker %i: ", i);
 			perror(NULL);
-			exit(EXIT_CODE_CREATE_PIPE_FAILED);
+			close(requestPipe[0]);
+			close(requestPipe[1]);
+			return 0;
 		}
-		
-		manager->requestPipeWriteFds[i] = requestPipe[1];
-		manager->pollFds[i].fd = resultPipe[0];
 		
 		// We create the child process and handle any errors.
 		pid_t forkResult = fork();
 		if (forkResult == -1) {
 			fprintf(stderr, "[Master] Worker manager error: Failed to create fork for worker %i: ", i);
 			perror(NULL);
-			exit(EXIT_CODE_FORK_FAILED);
+			close(requestPipe[0]);
+			close(requestPipe[1]);
+			close(resultPipe[0]);
+			close(resultPipe[1]);
+			return 0;
 		}
 		
 		// The child process redirects fds and exec-s the worker executable.
@@ -118,31 +123,57 @@ static void performWorkerSpawning(workerManagerADT manager) {
 			// This only runs if the exec fails.
 			fprintf(stderr, "[Worker] Worker with id %u failed to exec %s: ", i, WORKER_EXEC_FILE);
 			perror(NULL);
-			exit(-1);
+			close(requestPipe[0]);
+			close(resultPipe[1]);
+			exit(EXIT_CODE_EXEC_FAILED);
 		}
 		
-		// The parent process now closes the pipe ends it doesn't need.
+		// The parent process now stores the fds it wants to keep
+		// and closes the ones it doesn't.
+		manager->requestPipeWriteFds[i] = requestPipe[1];
+		manager->pollFds[i].fd = resultPipe[0];
+		
 		// Close the read end of the request pipe.
 		close(requestPipe[0]);
 		// Close the write end of the result pipe.
 		close(resultPipe[1]);
 	}
+	
+	return 1;
 }
 
 workerManagerADT newWorkerManager(unsigned int workerCount) {
 	if (workerCount == 0) {
 		fprintf(stderr, "[Master] Worker manager warning: New worker manager created with workerCount = 0.\n");
+		return NULL;
 	}
 	
-	workerManagerADT manager = callocOrExit(1, sizeof(struct workerManagerCDT));
+	// We attempt to allocate memory for the CDT struct. If this fails, we return NULL.
+	workerManagerADT manager;
+	if (!tryCalloc((void**)&manager, 1, sizeof(struct workerManagerCDT)))
+		return NULL;
+	
+	// We attempt to allocate the memory needed for the workerManagerADT. If any
+	// of the allocs fail, we free them all and return NULL.
+	if (!tryCalloc((void**)&manager->requestPipeWriteFds, workerCount, sizeof(int))
+		|| !tryCalloc((void**)&manager->remainingTaskCounts, workerCount, sizeof(unsigned int))
+		|| !tryCalloc((void**)&manager->pollFds, workerCount, sizeof(struct pollfd))
+		|| !tryMalloc((void**)&manager->pollFdsWorkerIds, sizeof(unsigned int) * workerCount)
+		|| !tryMalloc((void**)&manager->resultBufs, sizeof(TWorkerResult) * workerCount)
+		|| !tryCalloc((void**)&manager->resultBufCounts, workerCount, sizeof(int))) {
+		
+		fprintf(stderr, "[Master] Worker manager error: failed to allocate enough memory for manager with %u workers.\n", workerCount);
+		
+		// It's ok to call free() on all of them because if they weren't allocated,
+		// they will have NULL (note that the struct workerManaerCDT is zeroed out
+		// by calloc), and free() ignores calls with NULL.
+		freeWorkerManager(manager);
+		return NULL;
+	}
+	
+	// Set initial values on the manager struct.
 	manager->workerCount = workerCount;
 	manager->remainingWorkerCount = workerCount;
-	manager->requestPipeWriteFds = mallocOrExit(sizeof(int) * workerCount);
-	manager->remainingTaskCounts = callocOrExit(workerCount, sizeof(unsigned int));
-	manager->pollFds = mallocOrExit(sizeof(struct pollfd) * workerCount);
-	manager->pollFdsWorkerIds = mallocOrExit(sizeof(unsigned int) * workerCount);
-	manager->resultBufs = mallocOrExit(sizeof(TWorkerResult) * workerCount);
-	manager->resultBufCounts = callocOrExit(workerCount, sizeof(int));
 	
 	for (int i=0; i<workerCount; i++) {
 		struct pollfd* p = &manager->pollFds[i];
@@ -151,7 +182,18 @@ workerManagerADT newWorkerManager(unsigned int workerCount) {
 		manager->pollFdsWorkerIds[i] = i;
 	}
 	
-	performWorkerSpawning(manager);
+	// Attempt to spawn the workers. If this fails, close all open pipe fds,
+	// free the manager and return NULL.
+	if (!performWorkerSpawning(manager)) {
+		// Both of these arrays are zeroed on allocation, so if performWorkerSpawning()
+		// didn't create a fd yet it's left as 0. We close all the non-zero ones.
+		for (int i=0; i<workerCount; i++) {
+			if (manager->requestPipeWriteFds[i]) close(manager->requestPipeWriteFds[i]);
+			if (manager->pollFds[i].fd) close(manager->pollFds[i].fd);
+		}
+		freeWorkerManager(manager);
+		return NULL;
+	}
 	
 	return manager;
 }
@@ -269,8 +311,12 @@ static void handleWorkerClosing(workerManagerADT manager, unsigned int bufIndex)
 		fprintf(stderr, "[Master] Worker manager warning: Worker %u closed, but its request pipe is still open. Did worker crash?\n", closingWorkerId);
 	}
 	
+	if (manager->remainingTaskCounts[closingWorkerId]) {
+		fprintf(stderr, "[Master] Worker manager warning: Worker %u closed, but it still had %u task/s awaiting results. Did worker crash?\n", closingWorkerId, manager->remainingTaskCounts[closingWorkerId]);
+	}
+	
 	if (manager->resultBufCounts[bufIndex]) {
-		fprintf(stderr, "[Master] Worker manager warning: Worker %u closed, but it still had %i bytes in the result buffer.\n", closingWorkerId, manager->resultBufCounts[bufIndex]);
+		fprintf(stderr, "[Master] Worker manager warning: Worker %u closed, but it still had %i byte/s in the result buffer.\n", closingWorkerId, manager->resultBufCounts[bufIndex]);
 	}
 	
 	// If it's not the last element in pollFds, we remove the entry by swapping

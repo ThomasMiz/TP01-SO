@@ -9,19 +9,32 @@
  */
 
 /**
- * Same as malloc(size), but exits the process if the operation fails.
+ * Attempts to malloc(size). If the operation succeeds, the resulting
+ * pointer is placed in *ptr and 1 is returned. Otherwise, ptr is left
+ * unchanged and 0 is returned.
  */
-void* mallocOrExit(size_t size);
+int tryMalloc(void** ptr, size_t size);
 
 /**
- * Same as realloc(ptr, size), but exits the process if the operation fails.
+ * Attempts to realloc(*ptr, size). If the operation succeeds, the
+ * resulting pointer is placed in *ptr and 1 is returned. Otherwise,
+ * ptr is left unchanged and 0 is returned.
  */
-void* reallocOrExit(void* ptr, size_t size);
+int tryRealloc(void** ptr, size_t size);
 
 /**
- * Same as calloc(nmemb, size), but exits the process if the operation fails.
+ * Attempts to calloc(nmemb, size). If the operation succeeds, the
+ * resulting pointer is placed in *ptr and 1 is returned. Otherwise,
+ * ptr is left unchanged and 0 is returned.
  */
-void* callocOrExit(size_t nmemb, size_t size);
+int tryCalloc(void** ptr, size_t nmemb, size_t size);
+
+/**
+ * If *size < requiredSize, attempts to realloc(*ptr, requiredSize) and
+ * places the resulting pointer in *ptr. If this fails, 0 is returned.
+ * Otherwise, 1 is returned.
+ */
+int tryReallocIfNecessary(void** ptr, size_t* size, size_t requiredSize);
 
 /**
  * A wrapper around write() which ensures the entire buffer is written to

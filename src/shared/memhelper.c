@@ -9,37 +9,38 @@
 #define READ_MAX_FAILS 3
 #define WRITE_MAX_FAILS 3
 
-void* mallocOrExit(size_t size) {
-	void* ptr = malloc(size);
-	
-	if (ptr == NULL && size != 0) {
-		fprintf(stderr, "Not enough memory: failed to allocate %lu bytes.\n", size);
-		exit(EXIT_CODE_NOT_ENOUGH_MEMORY);
-	}
-	
-	return ptr;
+int tryMalloc(void** ptr, size_t size)
+{
+    void* newPtr = malloc(size);
+    if (newPtr == NULL)
+        return 0;
+
+    *ptr = newPtr;
+    return 1;
 }
 
-void* reallocOrExit(void* ptr, size_t size) {
-	ptr = realloc(ptr, size);
-	
-	if (ptr == NULL && size != 0) {
-		fprintf(stderr, "Not enough memory: failed to allocate %lu bytes.\n", size);
-		exit(EXIT_CODE_NOT_ENOUGH_MEMORY);
-	}
-	
-	return ptr;
+int tryRealloc(void** ptr, size_t newSize)
+{
+    void* newPtr = realloc(*ptr, newSize);
+    if (newPtr == NULL)
+        return 0;
+
+    *ptr = newPtr;
+    return 1;
 }
 
-void* callocOrExit(size_t nmemb, size_t size) {
-	void* ptr = calloc(nmemb, size);
-	
-	if (ptr == NULL && size != 0) {
-		fprintf(stderr, "Not enough memory: failed to allocate %lu bytes.\n", size);
-		exit(EXIT_CODE_NOT_ENOUGH_MEMORY);
-	}
-	
-	return ptr;
+int tryCalloc(void** ptr, size_t nmemb, size_t size)
+{
+    void* newPtr = calloc(nmemb, size);
+    if (newPtr == NULL)
+        return 0;
+
+    *ptr = newPtr;
+    return 1;
+}
+
+int tryReallocIfNecessary(void** ptr, size_t* size, size_t requiredSize) {
+	return (*size >= requiredSize && *ptr != NULL) ? 1 : tryRealloc(ptr, requiredSize);
 }
 
 int writeFull(int fd, const void* buf, size_t count) {

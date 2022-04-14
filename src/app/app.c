@@ -29,6 +29,11 @@ int main(int argc, const char* argv[]) {
 	// Create a new workerManager with the desired amount of workers.
 	workerManagerADT workerManager = newWorkerManager(decideWorkerCount(appContext.fileCount));
 	
+	if (workerManager == NULL) {
+		fprintf(stderr, "[Master] Error: failed to create worker manager. Aborting.\n");
+		return 1;
+	}
+	
 #if DEBUG_PRINTS == 1
 	fprintf(stderr, "[Master] Number of workers: %u\n", getWorkerCount(workerManager));
 #endif
