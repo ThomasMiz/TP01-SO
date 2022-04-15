@@ -56,6 +56,12 @@ dkms.conf
 *.ini
 *.csv
 *.cnf
+.config/*
+
+# PVS-Studio files
+PVS-Studio.log
+report.tasks
+strace_out
 
 # Our executable output files
 solve
