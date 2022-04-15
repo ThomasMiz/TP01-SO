@@ -19,13 +19,13 @@ struct workerManagerCDT {
 	
 	/**
 	 * The fds of the pipes to send requests to workers. These are
-	 * set to -1 once they are closed.
+	 * set to -1 once they are closed. Accessed by worker id.
 	 */
 	int* requestPipeWriteFds;
 	
 	/**
 	 * An array with the amount of remaining tasks sent each worker
-	 * has.
+	 * has. Accessed by worker id.
 	 */
 	unsigned int* remainingTaskCounts;
 	
@@ -33,7 +33,10 @@ struct workerManagerCDT {
 	 * Structures used for event polling on the result pipes.
 	 * Also contains the result pipe fds. May be out of order.
 	 * The length of this array is remainingWorkerCount.
-	*/
+	 * 
+	 * Might now be ordered by worker id like other arrays!
+	 * Correspondoing ids are found in pollFdsWorkerIds.
+	 */
 	struct pollfd* pollFds;
 	
 	/**
@@ -53,10 +56,14 @@ struct workerManagerCDT {
 	/** 
 	 * Buffers used to receive the TWorkResult structs sent by workers,
 	 * since there's no guarantee it will be read all at once.
+	 * Accessed by worker id.
 	 */
 	TWorkerResult* resultBufs;
 	
-	/** The amount of bytes read for each TWorkerResult in resultBufs. */
+	/**
+	 * The amount of bytes read for each TWorkerResult in resultBufs.
+	 * Accessed by worker id.
+	 */
 	int* resultBufCounts;
 };
 
@@ -76,14 +83,14 @@ static int performWorkerSpawning(workerManagerADT manager) {
 	for (unsigned int i=0; i<manager->workerCount; i++) {
 		// We attempt to create the request pipe and handle any errors.
 		if (pipe(requestPipe)) {
-			fprintf(stderr, "[Master] Worker manager error: Failed to create request pipe for worker %i: ", i);
+			fprintf(stderr, "[Master] Worker manager error: Failed to create request pipe for worker %u: ", i);
 			perror(NULL);
 			return 0;
 		}
 		
 		// We attempt to create the result pipe and handle any errors.
 		if (pipe(resultPipe)) {
-			fprintf(stderr, "[Master] Worker manager error: Failed to create result pipe for worker %i: ", i);
+			fprintf(stderr, "[Master] Worker manager error: Failed to create result pipe for worker %u: ", i);
 			perror(NULL);
 			close(requestPipe[0]);
 			close(requestPipe[1]);
@@ -93,7 +100,7 @@ static int performWorkerSpawning(workerManagerADT manager) {
 		// We create the child process and handle any errors.
 		pid_t forkResult = fork();
 		if (forkResult == -1) {
-			fprintf(stderr, "[Master] Worker manager error: Failed to create fork for worker %i: ", i);
+			fprintf(stderr, "[Master] Worker manager error: Failed to create fork for worker %u: ", i);
 			perror(NULL);
 			close(requestPipe[0]);
 			close(requestPipe[1]);
@@ -190,8 +197,10 @@ workerManagerADT newWorkerManager(unsigned int workerCount) {
 		// Both of these arrays are zeroed on allocation, so if performWorkerSpawning()
 		// didn't create a fd yet it's left as 0. We close all the non-zero ones.
 		for (int i=0; i<workerCount; i++) {
-			if (manager->requestPipeWriteFds[i]) close(manager->requestPipeWriteFds[i]);
-			if (manager->pollFds[i].fd) close(manager->pollFds[i].fd);
+			if (manager->requestPipeWriteFds[i])
+				close(manager->requestPipeWriteFds[i]);
+			if (manager->pollFds[i].fd)
+				close(manager->pollFds[i].fd);
 		}
 		freeWorkerManager(manager);
 		return NULL;
@@ -317,8 +326,8 @@ static void handleWorkerClosing(workerManagerADT manager, unsigned int bufIndex)
 		fprintf(stderr, "[Master] Worker manager warning: Worker %u closed, but it still had %u task/s awaiting results. Did worker crash?\n", closingWorkerId, manager->remainingTaskCounts[closingWorkerId]);
 	}
 	
-	if (manager->resultBufCounts[bufIndex]) {
-		fprintf(stderr, "[Master] Worker manager warning: Worker %u closed, but it still had %i byte/s in the result buffer.\n", closingWorkerId, manager->resultBufCounts[bufIndex]);
+	if (manager->resultBufCounts[closingWorkerId]) {
+		fprintf(stderr, "[Master] Worker manager warning: Worker %u closed, but it still had %i byte/s in the result buffer.\n", closingWorkerId, manager->resultBufCounts[closingWorkerId]);
 	}
 	
 	// If it's not the last element in pollFds, we remove the entry by swapping
@@ -326,8 +335,6 @@ static void handleWorkerClosing(workerManagerADT manager, unsigned int bufIndex)
 	if (bufIndex != remWorkers) {
 		manager->pollFds[bufIndex] = manager->pollFds[remWorkers];
 		manager->pollFdsWorkerIds[bufIndex] = manager->pollFdsWorkerIds[remWorkers];
-		manager->resultBufCounts[bufIndex] = manager->resultBufCounts[remWorkers];
-		manager->resultBufs[bufIndex] = manager->resultBufs[remWorkers];
 	}
 	
 	// We invoke the worker closed callback if it's not null.
@@ -344,9 +351,11 @@ static int handleReadResultPipe(workerManagerADT manager, unsigned int bufIndex)
 	// This read is guaranteed to be non-blocking, because this is only called
 	// by pollEvents() when an event occurs on the fd.
 	
+	unsigned int workerId = manager->pollFdsWorkerIds[bufIndex];
+	
 	// We read from the fd the amount of bytes necessary to fill up a TWorkerResult.
-	int t = manager->resultBufCounts[bufIndex];
-	t = read(manager->pollFds[bufIndex].fd, (void*)&manager->resultBufs[bufIndex] + t, sizeof(TWorkerResult) - t);
+	int t = manager->resultBufCounts[workerId];
+	t = read(manager->pollFds[bufIndex].fd, (void*)&manager->resultBufs[workerId] + t, sizeof(TWorkerResult) - t);
 	
 	if (t == 0) {
 		// When read() returns 0, it is to indicate an end of file. This worker has closed.
@@ -357,32 +366,27 @@ static int handleReadResultPipe(workerManagerADT manager, unsigned int bufIndex)
 	// If the read fails then we don't try again- if there's stuff to read
 	// from this fd it will occur on the next pollEvents() cycle.
 	if (t < 0) {
-		fprintf(stderr, "[Master] Worker manager warning: Error while reading from worker %u result pipe: ", manager->pollFdsWorkerIds[bufIndex]);
+		fprintf(stderr, "[Master] Worker manager warning: Error while reading from worker %u result pipe: ", workerId);
 		perror(NULL);
 		return 0;
 	}
 	
 	// We check if total amount of bytes that was read from the result of this worker
 	// is enough to form a whole TWorkerResult struct. If so, we invoke the result callback.
-	t += manager->resultBufCounts[bufIndex];
+	t += manager->resultBufCounts[workerId];
 	
 	if (t >= sizeof(TWorkerResult)) {
-		
-		// This should never happen, but let's handle it just in case.
-		if (t > sizeof(TWorkerResult))
-			fprintf(stderr, "[Master] Worker manager error: Failed to read from worker %u result pipe, too many bytes read?? Your linux is broken lololol\n", manager->pollFdsWorkerIds[bufIndex]);
-		
-		manager->resultBufCounts[bufIndex] = 0;
-		manager->remainingTaskCounts[manager->pollFdsWorkerIds[bufIndex]]--;
+		manager->resultBufCounts[workerId] = 0;
+		manager->remainingTaskCounts[workerId]--;
 		
 		if (manager->resultCallback) {
-			manager->resultCallback(manager, manager->pollFdsWorkerIds[bufIndex], &manager->resultBufs[bufIndex], manager->resultCallbackArg);
+			manager->resultCallback(manager, workerId, &manager->resultBufs[workerId], manager->resultCallbackArg);
 		} else {
-			fprintf(stderr, "[Master] Worker manager warning: Worker %u returned result got discarded because result callback is null.\n", manager->pollFdsWorkerIds[bufIndex]);
+			fprintf(stderr, "[Master] Worker manager warning: Worker %u returned result got discarded because result callback is null.\n", workerId);
 		}
 	} else {
 		// We haven't read enough bytes to form a full TWorkerResult yet.
-		manager->resultBufCounts[bufIndex] = t;
+		manager->resultBufCounts[workerId] = t;
 	}
 	
 	return 0;

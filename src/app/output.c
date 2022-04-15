@@ -19,13 +19,13 @@ void onOutputBegin(TAppContext* appContext) {
 		return;
 	}
 	
-	fprintf(file, "archivo, clausulas, variables, resultado, tiempoNanos, idWorker\n");
+	fprintf(file, "archivo, clausulas, variables, resultado, tiempo, idWorker\n");
 }
 
 void onOutputResult(TAppContext* appContext, unsigned int workerId, const TWorkerResult* result, const char* filepath) {
 	if (appContext->resultOutputFile) {
-		fprintf(appContext->resultOutputFile, "\"%s\", %u, %u, %s, %lu, %u\n", filepath, result->cantidadClausulas,
-			result->cantidadVariables, satResultToString(result->status), result->timeNanoseconds, workerId);
+		fprintf(appContext->resultOutputFile, "\"%s\", %u, %u, %s, %f, %u\n", filepath, result->cantidadClausulas,
+			result->cantidadVariables, satResultToString(result->status), result->timeSeconds, workerId);
 	}
 }
 

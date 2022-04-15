@@ -30,16 +30,14 @@ int readWorkerRequest(int fd, TWorkerRequest* request, char** filepathBuf, size_
 void interpretMinisatOutput(FILE* f, TWorkerResult* result) {
 	result->cantidadClausulas = 0;
 	result->cantidadVariables = 0;
-	result->timeNanoseconds = 0;
+	result->timeSeconds = 0;
 	
-	double timeSeconds;
 	char  c;
-	int matches = fscanf(f, "%u\n%u\n%lf\n%c", &result->cantidadClausulas, &result->cantidadVariables, &timeSeconds, &c);
+	int matches = fscanf(f, "%u\n%u\n%lf\n%c", &result->cantidadClausulas, &result->cantidadVariables, &result->timeSeconds, &c);
 	
 	if (matches < 4) {
 		result->status = Error;
 	} else {
 		result->status = (c == 'S' ? Sat : (c == 'U' ? Unsat : Error));
-		result->timeNanoseconds = (unsigned long)(timeSeconds * 1000000000.0);
 	}
 }
