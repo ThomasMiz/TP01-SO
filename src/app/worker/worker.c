@@ -8,18 +8,19 @@
 #include "./../../shared/memhelper.h"
 
 #define CMD_TEMPLATE_1 "minisat \""
-#define CMD_TEMPLATE_2 "\" | grep -o -e \"Number of.*[0-9]\\+\" -e \"CPU time.*\" -e \".*SATISFIABLE\""
-#define CMD_TEMPLATE_1_LEN 9
-#define CMD_TEMPLATE_2_LEN 70
+#define CMD_TEMPLATE_2 "\" | grep -o -e \"Number of.*[0-9]\\+\" -e \"CPU time.*\" -e \".*SATISFIABLE\" | grep -o -e \"[0-9\\.]*\" -e \".*SATISFIABLE\""
 
 /**
  * Attempts to run the minisat and output a result.
  * Returns 0 if a fatal error ocurred, 1 otherwise.
  */
 static int runMinisat(const TWorkerRequest* request, TWorkerResult* result, char** filepathBuf, size_t* filepathBufLen) {
+	size_t template1Length = strlen(CMD_TEMPLATE_1);
+	size_t template2Length = strlen(CMD_TEMPLATE_2);
+	
 	// We will use filepathBuf as a buffer to store the whole command.
 	// We ensure it's large enough to hold the whole command plus a '\0'.
-	if (!tryReallocIfNecessary((void**)filepathBuf, filepathBufLen, request->filepathLength + CMD_TEMPLATE_1_LEN + CMD_TEMPLATE_2_LEN + 1)) {
+	if (!tryReallocIfNecessary((void**)filepathBuf, filepathBufLen, request->filepathLength + template1Length + template2Length + 1)) {
 		fprintf(stderr, "[Worker] Error: Failed to alloc for cmd length %u.\n", request->filepathLength);
 		return 0;
 	}
@@ -29,16 +30,9 @@ static int runMinisat(const TWorkerRequest* request, TWorkerResult* result, char
 	// the file path, and CMD_TEMPLATE_2.
 	char* buf = *filepathBuf;
 	
-	// We move the whole filepath ahead in the buffer to make space for CMD_TEMPLATE_1.
-	for (int i=request->filepathLength-1; i>=0; i--)
-		buf[i + CMD_TEMPLATE_1_LEN] = buf[i];
-	
-	// We copy CMD_TEMPLATE_1 into the beginning of the buffer.
-	for (int i=0; i<CMD_TEMPLATE_1_LEN; i++)
-		buf[i] = CMD_TEMPLATE_1[i];
-	
-	// We copy CMD_TEMPLATE_2 to the rest of the buffer.
-	strcpy(buf + request->filepathLength + CMD_TEMPLATE_1_LEN, CMD_TEMPLATE_2);
+	memmove(buf + template1Length, buf, request->filepathLength);
+	memcpy(buf, CMD_TEMPLATE_1, template1Length);
+	strcpy(buf + request->filepathLength + template1Length, CMD_TEMPLATE_2);
 
 	FILE* f = popen(buf, "r");
 	

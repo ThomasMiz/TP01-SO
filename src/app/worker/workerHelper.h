@@ -20,6 +20,12 @@ int readWorkerRequest(int fd, TWorkerRequest* request, char** filepathBuf, size_
  * Interprets the output of the grep-ed minisat and writes
  * to the result struct cantidadVariables, cantidadClausulas,
  * timeNanoseconds and status.
+ *
+ * This function is a simple parser that expects something like this:
+ * 100
+ * 403
+ * 0.00257
+ * SATISFIABLE
  */
 void interpretMinisatOutput(FILE* f, TWorkerResult* result);
 
