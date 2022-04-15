@@ -11,31 +11,35 @@
 
 int main(int argc, const char* argv[]) {		//Recibe nombre:size
 
-	char* shmName;
+	char* shmName = (char* ) malloc((10) * sizeof(char));;
 	size_t shmSize;
 	
+	if (argc == 1) {
+		fscanf(stdin, "%10s:%lu", shmName, &shmSize);
+	}
 	if (argc == 2) {
-		int iLen = strlen(argv[1]);
-		char* sInput = (char* ) malloc((iLen+1) * sizeof(char));
-		strcpy(sInput, argv[1]);
-		printf("Recieved argument => %s \n", argv[1]);
-		char* sSeparator = ":";
-		char* pToken = strtok(sInput, sSeparator);
-		if(pToken == NULL) {
-			fprintf(stderr, "Wrong input, shmName arg NULL \n");
-			exit(EXIT_FAILURE);
-		}
-		shmName = pToken;
-		pToken = strtok(NULL, sSeparator);
-		if(pToken == NULL) {
-			fprintf(stderr, "Wrong input, shmSize arg NULL \n");
-			exit(EXIT_FAILURE);
-		}
-		shmSize = atoi(pToken);
-		if (shmSize > MAX_SHM_SIZE) {
-			fprintf(stderr, "Shared memory space requested too big \n");
-			exit(EXIT_FAILURE);
-		}
+		scanf(argv[1], "%10s:%lu", shmName, &shmSize);
+		// int iLen = strlen(argv[1]);
+		// char* sInput = (char* ) malloc((iLen+1) * sizeof(char));
+		// strcpy(sInput, argv[1]);
+		// printf("Recieved argument => %s \n", argv[1]);
+		// char* sSeparator = ":";
+		// char* pToken = strtok(sInput, sSeparator);
+		// if(pToken == NULL) {
+			// fprintf(stderr, "Wrong input, shmName arg NULL \n");
+			// exit(EXIT_FAILURE);
+		// }
+		// shmName = pToken;
+		// pToken = strtok(NULL, sSeparator);
+		// if(pToken == NULL) {
+			// fprintf(stderr, "Wrong input, shmSize arg NULL \n");
+			// exit(EXIT_FAILURE);
+		// }
+		// shmSize = atoi(pToken);
+		// if (shmSize > MAX_SHM_SIZE) {
+			// fprintf(stderr, "Shared memory space requested too big \n");
+			// exit(EXIT_FAILURE);
+		// }
 	}
 	else if (argc > 2) {
 		fprintf(stderr, "Too many arguments: %d \n", argc);
@@ -50,9 +54,11 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 	resourceOpen(shmName, shmSize, &ptrInfo);
 	TSharedMemContext* sharedMemContext = ptrInfo.shmStart;
 	
+	sem_post(&sharedMemContext->semCanWrite);
+	
 	while (1) {
 		
-		sem_wait(&sharedMemContext->semCanRead);
+		sem_wait(&sharedMemContext->semCanWrite);
 		if (sharedMemContext->bytesSent == 0) {
 			fprintf(stderr, "[ERR] bytesSent=0\n");
 			exit(EXIT_FAILURE);

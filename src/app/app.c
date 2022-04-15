@@ -104,8 +104,11 @@ int main(int argc, const char* argv[]) {
 }
 
 static void onWorkerResult(workerManagerADT sender, unsigned int workerId, const TWorkerResult* result, void* arg) {
+	
 	TAppContext* appContext = arg;
 	appContext->resultsReceived++;
+	
+	sem_wait(&appContext->sharedMemContext->semCanRead);
 	
 #if DEBUG_PRINTS == 1
 	fprintf(stderr, "[Master] Worker %u returned result: taskId=%u, cantidadClausulas=%u, cantidadVariables=%u.\n", workerId, result->taskId, result->cantidadClausulas, result->cantidadVariables);
@@ -125,6 +128,8 @@ static void onWorkerResult(workerManagerADT sender, unsigned int workerId, const
 	
 	// Send the result to output.c
 	onOutputResult(appContext, workerId, result, appContext->files[result->taskId]);
+	
+	sem_post(&appContext->sharedMemContext->semCanWrite);
 }
 
 static void onWorkerClosed(workerManagerADT sender, unsigned int workerId, void* arg) {
