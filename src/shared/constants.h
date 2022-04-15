@@ -41,5 +41,11 @@
 * Define of the max quantity of bytes that can be asigned to the SHM 
 */
 #define MAX_SHM_SIZE 1000000
+#define SHM_TEST_SIZE 40000
+
+/**
+* Define the max time sem_timedwait waits in sec
+*/
+#define MAX_TIME_WAIT 10
 
 #endif

@@ -1,8 +1,13 @@
 #include <stdio.h>
+#include <assert.h>
+#include <semaphore.h>
+#include <signal.h>
+#include <errno.h>
 #include "app.h"
 #include "appHelper.h"
 #include "workerManagerADT.h"
 #include "output.h"
+#include "shmAppHandler.h"
 #include "./../shared/constants.h"
 
 
@@ -25,6 +30,29 @@ int main(int argc, const char* argv[]) {
 	appContext.fileCount = argc - 1;
 	appContext.filesSent = 0;
 	appContext.resultsReceived = 0;
+	
+	// Creation of shared mem and semaphores
+	resourceInit("/myShm", SHM_TEST_SIZE, &appContext.ptrInfo);
+	appContext.sharedMemContext = appContext.ptrInfo.shmStart;
+	printf("%s:%lu", appContext.ptrInfo.shmName, appContext.ptrInfo.shmSize);
+	
+	// Wait time until view responds
+	int s;
+	if (clock_gettime(CLOCK_REALTIME, &appContext.ts) == -1) {
+		perror("clock_gettime"); 
+		exit(EXIT_FAILURE);
+	}
+	appContext.ts.tv_sec += MAX_TIME_WAIT;
+	while ((s = sem_timedwait(&appContext.sharedMemContext->semCanRead, &appContext.ts)) == -1 && errno == EINTR) {
+    continue;       // Restart if interrupted by handler
+	}
+	/* Check what happened */
+	if (s == -1) {
+		if (errno == ETIMEDOUT)
+        printf("sem_timedwait() timed out\n");
+		else
+        perror("sem_timedwait");
+	}
 	
 	// Create a new workerManager with the desired amount of workers.
 	workerManagerADT workerManager = newWorkerManager(decideWorkerCount(appContext.fileCount));

@@ -49,9 +49,8 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 	TSharedMemContext* sharedMemContext = ptrInfo.shmStart;
 	
 	while (1) {
-	
+		
 		sem_wait(&sharedMemContext->semCanRead);
-		sem_wait(&sharedMemContext->semCanWrite);
 		if (sharedMemContext->bytesSent == 0) {
 			fprintf(stderr, "[ERR] bytesSent=0\n");
 			exit(EXIT_FAILURE);

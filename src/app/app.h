@@ -2,6 +2,8 @@
 #define _APP_H_
 
 #include <stdio.h>
+#include <time.h>
+#include "./../shared/shmHandler.h"
 
 /** Stores context information about the app process. */
 typedef struct {
@@ -25,6 +27,23 @@ typedef struct {
 	 * Should only be used in output.c.
 	 */
 	FILE* resultOutputFile;
-} TAppContext;
+	
+	/**
+	* Structure where all the information of the shm is saved
+	*/
+	TSharedMem ptrInfo;
+	
+	/**
+	* Pointer to the start of the shm where we have 2 semph and
+	* the length of the buffer sent
+	**/
+	TSharedMemContext* sharedMemContext;
+	
+	/**
+	* Structure used to trigger sem_timewait
+	*/
+	struct timespec ts;
+	
+	} TAppContext;
 
 #endif

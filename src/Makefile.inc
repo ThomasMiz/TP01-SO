@@ -1,3 +1,3 @@
 GCC=gcc
 
-GCCFLAGS=-Wall -std=c99 -lrt -pthread -D_XOPEN_SOURCE=500
+GCCFLAGS=-Wall -std=c99 -lrt -pthread -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L

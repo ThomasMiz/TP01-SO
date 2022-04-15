@@ -43,12 +43,12 @@ void resourceInit(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
 	ptrInfoSave->shmName= shmName;
 	ptrInfoSave->shmFDes = shmFDes;
 	ptrInfoSave->dataBuffer = shmStart + sizeof(TSharedMemContext);
-	ptrInfoSave->dataBufferSize = shmSize - sizeof(TSharedMemContext);
+	ptrInfoSave->dataBufferSize = shmSize;
 	
 	TSharedMemContext* sharedMemContext = shmStart;
 
     // Initialize semaphores
-    if(sem_init(&sharedMemContext->semCanWrite, 1, 1)) {
+    if(sem_init(&sharedMemContext->semCanWrite, 1, 0)) {
         perror("sem_init failed");
 	    exit(EXIT_FAILURE);
     }
