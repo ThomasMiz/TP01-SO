@@ -48,7 +48,7 @@ La otra forma es ejecutar el solve sin el pipe hacia vista, en cuyo caso se va a
 /ABCDEFGH:1234
 ```
 
-Este debe luego ser pasado como parámetro al proceso vista:
+Este debe luego ser pasado como parámetro al proceso vista antes de que expire un timeout de 10 segundos:
 
 ```sh
 ./vista /ABCDEFGH:1234
