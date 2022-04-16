@@ -32,20 +32,9 @@ workerManagerADT newWorkerManager(unsigned int workerCount);
 void freeWorkerManager(workerManagerADT manager);
 
 /**
- * Gets the amount of workers a manager was created with.
- * All worker ids are in the range [0, workerCount).
- */
-unsigned int getWorkerCount(workerManagerADT manager);
-
-/**
  * Gets the amount of remaining workers.
  */
 unsigned int getRemainingWorkerCount(workerManagerADT manager);
-
-/**
- * Returns 1 if the worker with the specified id is still open, 0 if closed.
- */
-int isWorkerOpen(workerManagerADT manager, unsigned int workerId);
 
 /**
  * Gets the amount of sent tasks the worker with the specified id has

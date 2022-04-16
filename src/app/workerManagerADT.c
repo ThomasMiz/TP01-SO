@@ -219,16 +219,8 @@ void freeWorkerManager(workerManagerADT manager) {
 	free(manager);
 }
 
-unsigned int getWorkerCount(workerManagerADT manager) {
-	return manager->workerCount;
-}
-
 unsigned int getRemainingWorkerCount(workerManagerADT manager) {
 	return manager->remainingWorkerCount;
-}
-
-int isWorkerOpen(workerManagerADT manager, unsigned int workerId) {
-	return workerId < manager->workerCount && manager->requestPipeWriteFds[workerId] >= 0;
 }
 
 unsigned int getWorkerRemainingTasks(workerManagerADT manager, unsigned int workerId) {
