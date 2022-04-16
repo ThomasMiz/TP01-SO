@@ -108,8 +108,6 @@ static void onWorkerResult(workerManagerADT sender, unsigned int workerId, const
 	TAppContext* appContext = arg;
 	appContext->resultsReceived++;
 	
-	sem_wait(&appContext->sharedMemContext->semCanRead);
-	
 #if DEBUG_PRINTS == 1
 	fprintf(stderr, "[Master] Worker %u returned result: taskId=%u, cantidadClausulas=%u, cantidadVariables=%u.\n", workerId, result->taskId, result->cantidadClausulas, result->cantidadVariables);
 #endif
@@ -126,10 +124,20 @@ static void onWorkerResult(workerManagerADT sender, unsigned int workerId, const
 			closeRemainingWorkers(sender);
 	}
 	
-	// Send the result to output.c
-	onOutputResult(appContext, workerId, result, appContext->files[result->taskId]);
+	const char* filepath;
+	if (result->taskId < appContext->fileCount) {
+		filepath = appContext->files[result->taskId];
+	} else {
+		fprintf(stderr, "[Master] Error: Worker %u returned result with invalid taskId %u.\n", workerId, result->taskId);
+		filepath = "?";
+	}
 	
-	sem_post(&appContext->sharedMemContext->semCanWrite);
+	// Send the result to output.c
+	onOutputResult(appContext, workerId, result, filepath);
+	
+	//sem_wait(&appContext->sharedMemContext->semCanRead);
+	
+	//sem_post(&appContext->sharedMemContext->semCanWrite);
 }
 
 static void onWorkerClosed(workerManagerADT sender, unsigned int workerId, void* arg) {

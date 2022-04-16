@@ -4,7 +4,7 @@
 /** The name of the executable file containing the worker process. */
 #define WORKER_EXEC_FILE "./worker"
 
-#define RESULT_OUTPUT_FILE "output.csv"
+#define RESULT_OUTPUT_FILE "result.csv"
 
 /**
  * A hard limit on the maximum amount of workers that can be spawned
