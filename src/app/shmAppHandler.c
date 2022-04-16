@@ -45,7 +45,7 @@ void resourceInit(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
 	ptrInfoSave->shmName= shmName;
 	ptrInfoSave->shmFDes = shmFDes;
 	ptrInfoSave->dataBuffer = shmStart + sizeof(TSharedMemContext);
-	ptrInfoSave->dataBufferSize = shmSize;
+	ptrInfoSave->dataBufferSize = shmSize - sizeof(TSharedMemContext);
 	
 	TSharedMemContext* sharedMemContext = shmStart;
 
@@ -72,5 +72,20 @@ void resourceUnlink(void* shmStart, TSharedMem* ptrInfo) {
 	munmap(ptrInfo->shmStart, ptrInfo->shmSize + sizeof(TSharedMemContext));
 	close(ptrInfo->shmFDes);
 	shm_unlink(ptrInfo->shmName);
+
+}
+
+void loadShm(TSharedMem* ptrInfo, unsigned int workerId, const TWorkerResult* result, const char* filepath) {
+	
+	TSharedMemContext* sharedMemContext = ptrInfo->shmStart;
+	TPackage* package = (TPackage*) malloc(sizeof(TPackage));;
+	package->filepath = filepath;
+	package->result = result;
+	package->workerId = workerId;
+	package->status = satResultToString(result->status);
+	sem_wait(&sharedMemContext->semCanRead);
+	memcpy(ptrInfo->dataBuffer, package, sizeof(TPackage));
+	sem_post(&sharedMemContext->semCanRead);
+	free(package);
 
 }

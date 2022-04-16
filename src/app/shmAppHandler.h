@@ -8,5 +8,6 @@
 
 void resourceInit(char* shmPath, size_t shmSize, TSharedMem* ptrInfoSave);
 void resourceUnlink(void* shmStart, TSharedMem* ptrInfoSave);
+void loadShm(TSharedMem* ptrInfo, unsigned int workerId, const TWorkerResult* result, const char* filepath);
 
 #endif

@@ -13,6 +13,7 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 
 	char* shmName = (char* ) malloc((10) * sizeof(char));;
 	size_t shmSize;
+	TPackage* privateBuff = (TPackage*) malloc(sizeof(TPackage));
 	
 	if (argc == 1) {
 		fscanf(stdin, "%10s:%lu", shmName, &shmSize);
@@ -58,19 +59,15 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 	
 	while (1) {
 		
-		sem_wait(&sharedMemContext->semCanWrite);
-		if (sharedMemContext->bytesSent == 0) {
-			fprintf(stderr, "[ERR] bytesSent=0\n");
-			exit(EXIT_FAILURE);
-		}
-		else {
-			//copiar buffer a local
-		}
-		sem_post(&sharedMemContext->semCanWrite);
-		//printeo data y si es comando de terminado cerrar salir del while
+		readShm(&ptrInfo, privateBuff);
+		printf("\"%s\", %u, %u, %s, %f, %u \n", privateBuff->filepath, privateBuff->result->cantidadClausulas,
+			privateBuff->result->cantidadVariables, privateBuff->result->status,
+			privateBuff->result->timeSeconds, privateBuff->workerId);
 	}
 	
 	resourceClose(&ptrInfo);
+	free(shmName);
+	free(privateBuff);
 
 	return 0;
 }

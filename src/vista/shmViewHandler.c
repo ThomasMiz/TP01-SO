@@ -51,3 +51,21 @@ void resourceClose(TSharedMem* ptrInfo) {
 
 }
 
+void readShm(TSharedMem* ptrInfo, TPackage* destination) {	// No se si conviene que sea void
+
+	TSharedMemContext* sharedMemContext = ptrInfo->shmStart;
+	
+	
+	sem_wait(&sharedMemContext->semCanWrite);
+	
+	if (sharedMemContext->bytesSent == 0) {
+		fprintf(stderr, "[ERR] bytesSent=0\n");
+		exit(EXIT_FAILURE);
+	}
+	else {
+		memcpy(destination, ptrInfo->dataBuffer, sizeof(TPackage));
+	}
+	
+	sem_post(&sharedMemContext->semCanWrite);
+
+}
