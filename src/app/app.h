@@ -37,13 +37,7 @@ typedef struct {
 	* Pointer to the start of the shm where we have 2 semph and
 	* the length of the buffer sent
 	**/
-	TSharedMemContext* sharedMemContext;
-	
-	/**
-	* Structure used to trigger sem_timewait
-	*/
-	struct timespec ts;
-	
-	} TAppContext;
+	TSharedMemContext* sharedMemContext;	
+} TAppContext;
 
 #endif

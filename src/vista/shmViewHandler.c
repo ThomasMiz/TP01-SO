@@ -26,7 +26,7 @@ void resourceOpen(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
 		exit(EXIT_FAILURE);
 	}
 
-	void* shmStart = mmap(NULL, shmSize + sizeof(TSharedMemContext), PROT_WRITE | PROT_READ, MAP_SHARED, ptrInfoSave->shmFDes, 0);
+	void* shmStart = mmap(NULL, shmSize, PROT_WRITE | PROT_READ, MAP_SHARED, shmFDes, 0);
 	if(shmStart == MAP_FAILED) {
 		perror("mmap failed");
     	exit(EXIT_FAILURE);
@@ -38,14 +38,11 @@ void resourceOpen(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
 	ptrInfoSave->shmFDes = shmFDes;
 	ptrInfoSave->dataBuffer = shmStart + sizeof(TSharedMemContext);
 	ptrInfoSave->dataBufferSize = shmSize - sizeof(TSharedMemContext);
-	
 }
 
 void resourceClose(TSharedMem* ptrInfo) {
-	
-	munmap(ptrInfo->shmStart, ptrInfo->shmSize + sizeof(TSharedMemContext));
+	munmap(ptrInfo->shmStart, ptrInfo->shmSize);
 	close(ptrInfo->shmFDes);
-
 }
 
 int readShm(TSharedMem* ptrInfo, TPackage* destination, char** privStr, size_t* privStrMaxLen) {

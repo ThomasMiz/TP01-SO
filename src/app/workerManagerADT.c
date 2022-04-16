@@ -211,6 +211,16 @@ workerManagerADT newWorkerManager(unsigned int workerCount) {
 }
 
 void freeWorkerManager(workerManagerADT manager) {
+	// Close the result pipes of any remaining workers.
+	for (int i=0; i < manager->remainingWorkerCount; i++)
+		close(manager->pollFds[i].fd);
+	
+	// Close the request pipes of any remaining workers.
+	for (int i=0; i<manager->workerCount; i++)
+		if (manager->requestPipeWriteFds[i] > 0)
+			close(manager->requestPipeWriteFds[i]);
+	
+	// Free all allocated memory.
 	free(manager->requestPipeWriteFds);
 	free(manager->remainingTaskCounts);
 	free(manager->pollFds);

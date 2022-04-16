@@ -17,23 +17,18 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 	}
 
 	char shmName[11];
-	size_t shmSize;
+	size_t shmSize = 0;
 	
-	if (argc < 2) {
-		fscanf(stdin, "%10s:%lu\n", shmName, &shmSize);
-	} else if (argc == 2) {
-		scanf(argv[1], "%10s:%lu", shmName, &shmSize);
-	}
-		// if(pToken == NULL) {
-			// fprintf(stderr, "Wrong input, shmSize arg NULL \n");
-			// exit(EXIT_FAILURE);
-		// }
-		// shmSize = atoi(pToken);
-		// if (shmSize > MAX_SHM_SIZE) {
-			// fprintf(stderr, "Shared memory space requested too big \n");
-			// exit(EXIT_FAILURE);
-		// }
+	int matches;
+	if (argc == 2)
+		matches = sscanf(argv[1], "%[/a-zA-Z]:%lu", shmName, &shmSize);
+	else
+		matches = fscanf(stdin, "%[/a-zA-Z]:%lu\n", shmName, &shmSize);
 	
+#if DEBUG_PRINTS == 1
+	fprintf(stderr, "[View] Connecting to %s with size %lu.\n", shmName, shmSize);
+#endif
+
 	TSharedMem ptrInfo;
 	resourceOpen(shmName, shmSize, &ptrInfo);
 	TSharedMemContext* sharedMemContext = ptrInfo.shmStart;
@@ -42,14 +37,14 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 	char* privStr = NULL;
 	size_t privStrMaxLen = 0;
 	
-	sem_post(&sharedMemContext->semCanWrite);
+	fprintf(stderr, "Posting semCanWrite");
+	if (sem_post(&sharedMemContext->semCanRead)) {
+		perror(NULL);
+		exit(-1);
+	}
 	
-	while (1) {
-		
-		if(!readShm(&ptrInfo, &privPackage, &privStr, &privStrMaxLen)) {
-			break;
-		}
-		
+	fprintf(stderr, "La willy willy");
+	while (readShm(&ptrInfo, &privPackage, &privStr, &privStrMaxLen)) {
 		printf("\"%s\", %u, %u, %s, %f, %u \n", privStr, privPackage.cantidadClausulas, privPackage.cantidadVariables,
 			satResultToString(privPackage.status), privPackage.timeSeconds, privPackage.workerId);
 	}

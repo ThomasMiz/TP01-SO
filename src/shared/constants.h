@@ -29,7 +29,7 @@
 /**
  * Define this to 1 to compile with debug prints enabled.
  */
-#define DEBUG_PRINTS 0
+#define DEBUG_PRINTS 1
 
 #define EXIT_CODE_NOT_ENOUGH_PARAMS 1
 #define EXIT_CODE_CREATE_PIPE_FAILED 2
@@ -40,8 +40,7 @@
 /**
 * Define of the max quantity of bytes that can be asigned to the SHM 
 */
-#define MAX_SHM_SIZE 10485760
-#define SHM_TEST_SIZE 4194304
+#define MAX_SHM_SIZE 4096
 
 /**
 * Define the max time sem_timedwait waits in sec

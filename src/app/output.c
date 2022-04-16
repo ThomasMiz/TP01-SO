@@ -8,7 +8,7 @@
 #include "communication.h"
 #include "./../shared/constants.h"
 
-void onOutputBegin(TAppContext* appContext) {
+int onOutputBegin(TAppContext* appContext) {
 	FILE* file = fopen(RESULT_OUTPUT_FILE, "w");
 	appContext->resultOutputFile = file;
 	
@@ -16,10 +16,11 @@ void onOutputBegin(TAppContext* appContext) {
 	if (!file) {
 		fprintf(stderr, "[Master] Error: Failed to create file %s for writting output: ", RESULT_OUTPUT_FILE);
 		perror(NULL);
-		return;
+		return 0;
 	}
 	
 	fprintf(file, "archivo, clausulas, variables, resultado, tiempo, idWorker\n");
+	return 1;
 }
 
 void onOutputResult(TAppContext* appContext, unsigned int workerId, const TWorkerResult* result, const char* filepath) {

@@ -18,7 +18,6 @@
 #include "./../shared/satResult.h"
 
 void resourceInit(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
-
     // This practice was recommended in class to avoid issues when the program was interrupted and relaunched (not beeing
 	// able to correctly close and clean shmem)
 	shm_unlink(shmName);
@@ -31,11 +30,11 @@ void resourceInit(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
 	}
 
 	// Preallocate a shared memory area
-	if(ftruncate(shmFDes, shmSize + sizeof(TSharedMemContext)) == -1) {
+	if(ftruncate(shmFDes, shmSize) == -1) {
 		perror("ftruncate failed");
     	exit(EXIT_FAILURE);
 	}
-	void* shmStart = mmap(NULL, shmSize + sizeof(TSharedMemContext), PROT_WRITE | PROT_READ, MAP_SHARED, shmFDes, 0);
+	void* shmStart = mmap(NULL, shmSize, PROT_WRITE | PROT_READ, MAP_SHARED, shmFDes, 0);
 	if(shmStart == MAP_FAILED) {
 		perror("mmap failed");
     	exit(EXIT_FAILURE);
@@ -51,7 +50,7 @@ void resourceInit(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
 	TSharedMemContext* sharedMemContext = shmStart;
 
     // Initialize semaphores
-    if(sem_init(&sharedMemContext->semCanWrite, 1, 0)) {
+    if(sem_init(&sharedMemContext->semCanWrite, 1, 1)) {
         perror("sem_init failed");
 	    exit(EXIT_FAILURE);
     }
@@ -59,26 +58,21 @@ void resourceInit(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
         perror("sem_init failed");
 	    exit(EXIT_FAILURE);
     }
-	
-	// to stdout shared memory path
-	write(STDOUT_FILENO, shmName, strlen(shmName) + 1);
 }
 
 void resourceUnlink(void* shmStart, TSharedMem* ptrInfo) {
-	
 	TSharedMemContext* sharedMemContext = shmStart;
 
 	sem_destroy(&sharedMemContext->semCanRead);
 	sem_destroy(&sharedMemContext->semCanWrite);
-	munmap(ptrInfo->shmStart, ptrInfo->shmSize + sizeof(TSharedMemContext));
+	munmap(ptrInfo->shmStart, ptrInfo->shmSize);
 	close(ptrInfo->shmFDes);
 	shm_unlink(ptrInfo->shmName);
-
 }
 
-void loadShm(const TSharedMem* ptrInfo, unsigned int workerId, const TWorkerResult* result, const char* filepath) {
-	
+void outputToShm(const TSharedMem* ptrInfo, unsigned int workerId, const TWorkerResult* result, const char* filepath) {
 	TSharedMemContext* sharedMemContext = ptrInfo->shmStart;
+	
 	TPackage package;
 	package.filepathLen = strlen(filepath);
 	package.status = result->status;
@@ -89,13 +83,11 @@ void loadShm(const TSharedMem* ptrInfo, unsigned int workerId, const TWorkerResu
 	
 	size_t freeBuffSize = ptrInfo->dataBufferSize - sizeof(TPackage);
 	
-	if (freeBuffSize < package.filepathLen) {
+	if (freeBuffSize < package.filepathLen)
 		package.filepathLen = freeBuffSize;
-	}
 	
-	sem_wait(&sharedMemContext->semCanRead);
+	sem_wait(&sharedMemContext->semCanWrite);
 	memcpy(ptrInfo->dataBuffer, &package, sizeof(TPackage));
 	memcpy(ptrInfo->dataBuffer + sizeof(TPackage), filepath, package.filepathLen);
 	sem_post(&sharedMemContext->semCanRead);
-
 }

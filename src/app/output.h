@@ -4,7 +4,7 @@
 #include "app.h"
 #include "communication.h"
 
-void onOutputBegin(TAppContext* appContext);
+int onOutputBegin(TAppContext* appContext);
 
 void onOutputResult(TAppContext* appContext, unsigned int workerId, const TWorkerResult* result, const char* filepath);
 
