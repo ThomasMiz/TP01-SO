@@ -8,6 +8,6 @@
 
 void resourceOpen(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave);
 void resourceClose(TSharedMem* ptrInfoSave);
-void readShm(TSharedMem* ptrInfo, TPackage* destination);
+int readShm(TSharedMem* ptrInfo, TPackage* destination, char** privStr, size_t* privStrMaxLen);
 
 #endif

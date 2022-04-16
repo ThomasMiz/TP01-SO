@@ -11,27 +11,19 @@
 
 int main(int argc, const char* argv[]) {		//Recibe nombre:size
 
-	char* shmName = (char* ) malloc((10) * sizeof(char));;
-	size_t shmSize;
-	TPackage* privateBuff = (TPackage*) malloc(sizeof(TPackage));
-	
-	if (argc == 1) {
-		fscanf(stdin, "%10s:%lu", shmName, &shmSize);
+	if (argc > 2) {
+		fprintf(stderr, "Too many arguments: %d \n", argc);
+        exit(EXIT_FAILURE);
 	}
-	if (argc == 2) {
+
+	char shmName[11];
+	size_t shmSize;
+	
+	if (argc < 2) {
+		fscanf(stdin, "%10s:%lu\n", shmName, &shmSize);
+	} else if (argc == 2) {
 		scanf(argv[1], "%10s:%lu", shmName, &shmSize);
-		// int iLen = strlen(argv[1]);
-		// char* sInput = (char* ) malloc((iLen+1) * sizeof(char));
-		// strcpy(sInput, argv[1]);
-		// printf("Recieved argument => %s \n", argv[1]);
-		// char* sSeparator = ":";
-		// char* pToken = strtok(sInput, sSeparator);
-		// if(pToken == NULL) {
-			// fprintf(stderr, "Wrong input, shmName arg NULL \n");
-			// exit(EXIT_FAILURE);
-		// }
-		// shmName = pToken;
-		// pToken = strtok(NULL, sSeparator);
+	}
 		// if(pToken == NULL) {
 			// fprintf(stderr, "Wrong input, shmSize arg NULL \n");
 			// exit(EXIT_FAILURE);
@@ -41,33 +33,28 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 			// fprintf(stderr, "Shared memory space requested too big \n");
 			// exit(EXIT_FAILURE);
 		// }
-	}
-	else if (argc > 2) {
-		fprintf(stderr, "Too many arguments: %d \n", argc);
-        exit(EXIT_FAILURE);
-	}
-	else {
-		fprintf(stderr, "Arguments expected \n");
-		exit(EXIT_FAILURE);
-	}
 	
 	TSharedMem ptrInfo;
 	resourceOpen(shmName, shmSize, &ptrInfo);
 	TSharedMemContext* sharedMemContext = ptrInfo.shmStart;
 	
+	TPackage privPackage;
+	char* privStr = NULL;
+	size_t privStrMaxLen = 0;
+	
 	sem_post(&sharedMemContext->semCanWrite);
 	
 	while (1) {
 		
-		readShm(&ptrInfo, privateBuff);
-		printf("\"%s\", %u, %u, %s, %f, %u \n", privateBuff->filepath, privateBuff->result->cantidadClausulas,
-			privateBuff->result->cantidadVariables, privateBuff->result->status,
-			privateBuff->result->timeSeconds, privateBuff->workerId);
+		if(!readShm(&ptrInfo, &privPackage, &privStr, &privStrMaxLen)) {
+			break;
+		}
+		
+		printf("\"%s\", %u, %u, %s, %f, %u \n", privStr, privPackage.cantidadClausulas, privPackage.cantidadVariables,
+			satResultToString(privPackage.status), privPackage.timeSeconds, privPackage.workerId);
 	}
 	
 	resourceClose(&ptrInfo);
-	free(shmName);
-	free(privateBuff);
 
 	return 0;
 }

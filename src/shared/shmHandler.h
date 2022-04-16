@@ -2,7 +2,7 @@
 #define _SHMHANDLER_H_
 
 #include <semaphore.h>
-#include "./../app/communication.h" //Because we need to know the struct of result in view and app
+#include "./../shared/satResult.h" //Because we need to know the struct of result in view and app
 
 typedef struct {
     sem_t semCanRead;
@@ -20,10 +20,12 @@ typedef struct {
 } TSharedMem;
 
 typedef struct {
-	const char* filepath;
-	const TWorkerResult* result;
+	unsigned int filepathLen;
+	enum SatResult status;
+	unsigned int cantidadClausulas;
+	unsigned int cantidadVariables;
+	double timeSeconds;
 	unsigned int workerId;
-	const char* status;
 } TPackage;
 
 #endif

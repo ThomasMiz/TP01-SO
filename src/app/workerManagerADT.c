@@ -9,6 +9,7 @@
 #include "workerManagerADT.h"
 #include "./../shared/constants.h"
 #include "./../shared/memhelper.h"
+#include "./../shared/satResult.h"
 
 struct workerManagerCDT {
 	/** The amount of workers this manager was created with. */

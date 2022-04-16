@@ -36,7 +36,7 @@ int main(int argc, const char* argv[]) {
 	// Creation of shared mem and semaphores
 	resourceInit("/myShm", SHM_TEST_SIZE, &appContext.ptrInfo);
 	appContext.sharedMemContext = appContext.ptrInfo.shmStart;
-	printf("%s:%lu", appContext.ptrInfo.shmName, appContext.ptrInfo.shmSize);
+	printf("%s:%lu\n", appContext.ptrInfo.shmName, appContext.ptrInfo.shmSize);
 	
 	// Wait time until view responds
 	int s;
@@ -45,7 +45,7 @@ int main(int argc, const char* argv[]) {
 		exit(EXIT_FAILURE);
 	}
 	appContext.ts.tv_sec += MAX_TIME_WAIT;
-	while ((s = sem_timedwait(&appContext.sharedMemContext->semCanRead, &appContext.ts)) == -1 && errno == EINTR) {
+	while ((s = sem_timedwait(&appContext.sharedMemContext->semCanWrite, &appContext.ts)) == -1 && errno == EINTR) {
     continue;       // Restart if interrupted by handler
 	}
 	/* Check what happened */
@@ -131,13 +131,12 @@ static void onWorkerResult(workerManagerADT sender, unsigned int workerId, const
 		fprintf(stderr, "[Master] Error: Worker %u returned result with invalid taskId %u.\n", workerId, result->taskId);
 		filepath = "?";
 	}
-	}
-	
-	// Send the result to SHM
-	loadShm(&appContext->ptrInfo, workerId, result, appContext->files[result->taskId]);
 	
 	// Send the result to output.c
 	onOutputResult(appContext, workerId, result, filepath);
+	
+	// Send the result to SHM
+	loadShm(&appContext->ptrInfo, workerId, result, filepath);
 	
 	//sem_wait(&appContext->sharedMemContext->semCanRead);
 	

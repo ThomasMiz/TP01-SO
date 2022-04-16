@@ -5,9 +5,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "./../shared/shmHandler.h"
+#include "communication.h"
 
 void resourceInit(char* shmPath, size_t shmSize, TSharedMem* ptrInfoSave);
 void resourceUnlink(void* shmStart, TSharedMem* ptrInfoSave);
-void loadShm(TSharedMem* ptrInfo, unsigned int workerId, const TWorkerResult* result, const char* filepath);
+void loadShm(const TSharedMem* ptrInfo, unsigned int workerId, const TWorkerResult* result, const char* filepath);
 
 #endif

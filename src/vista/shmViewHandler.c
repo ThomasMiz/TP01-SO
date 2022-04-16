@@ -15,6 +15,7 @@
 #include <sys/fcntl.h>
 #include <string.h>
 #include "shmViewHandler.h"
+#include "./../shared/memhelper.h"
 
 void resourceOpen(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
 
@@ -41,31 +42,30 @@ void resourceOpen(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
 }
 
 void resourceClose(TSharedMem* ptrInfo) {
-
-	TSharedMemContext* sharedMemContext = ptrInfo->shmStart;
 	
-	sem_close(&sharedMemContext->semCanWrite);
-	sem_close(&sharedMemContext->semCanRead);
 	munmap(ptrInfo->shmStart, ptrInfo->shmSize + sizeof(TSharedMemContext));
 	close(ptrInfo->shmFDes);
 
 }
 
-void readShm(TSharedMem* ptrInfo, TPackage* destination) {	// No se si conviene que sea void
+int readShm(TSharedMem* ptrInfo, TPackage* destination, char** privStr, size_t* privStrMaxLen) {
 
 	TSharedMemContext* sharedMemContext = ptrInfo->shmStart;
 	
+	sem_wait(&sharedMemContext->semCanRead);
 	
-	sem_wait(&sharedMemContext->semCanWrite);
+	memcpy(destination, ptrInfo->dataBuffer, sizeof(TPackage));
 	
-	if (sharedMemContext->bytesSent == 0) {
-		fprintf(stderr, "[ERR] bytesSent=0\n");
-		exit(EXIT_FAILURE);
+	if(!tryReallocIfNecessary((void**) privStr, privStrMaxLen, destination->filepathLen + 1)) {
+		fprintf(stderr, "Failed to alloc for cmd length %u.\n", destination->filepathLen + 1);
+		return 0;
 	}
-	else {
-		memcpy(destination, ptrInfo->dataBuffer, sizeof(TPackage));
-	}
+	memcpy(*privStr, ptrInfo->dataBuffer + sizeof(TPackage), destination->filepathLen);
 	
 	sem_post(&sharedMemContext->semCanWrite);
+	
+	(*privStr)[destination->filepathLen] = '\0';
+	
+	return 1;
 
 }

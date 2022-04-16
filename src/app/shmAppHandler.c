@@ -15,6 +15,7 @@
 #include <sys/fcntl.h>
 #include <string.h>
 #include "shmAppHandler.h"
+#include "./../shared/satResult.h"
 
 void resourceInit(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
 
@@ -75,17 +76,26 @@ void resourceUnlink(void* shmStart, TSharedMem* ptrInfo) {
 
 }
 
-void loadShm(TSharedMem* ptrInfo, unsigned int workerId, const TWorkerResult* result, const char* filepath) {
+void loadShm(const TSharedMem* ptrInfo, unsigned int workerId, const TWorkerResult* result, const char* filepath) {
 	
 	TSharedMemContext* sharedMemContext = ptrInfo->shmStart;
-	TPackage* package = (TPackage*) malloc(sizeof(TPackage));;
-	package->filepath = filepath;
-	package->result = result;
-	package->workerId = workerId;
-	package->status = satResultToString(result->status);
+	TPackage package;
+	package.filepathLen = strlen(filepath);
+	package.status = result->status;
+	package.cantidadClausulas = result->cantidadClausulas;
+	package.cantidadVariables = result->cantidadVariables;
+	package.timeSeconds = result->timeSeconds;
+	package.workerId = workerId;
+	
+	size_t freeBuffSize = ptrInfo->dataBufferSize - sizeof(TPackage);
+	
+	if (freeBuffSize < package.filepathLen) {
+		package.filepathLen = freeBuffSize;
+	}
+	
 	sem_wait(&sharedMemContext->semCanRead);
-	memcpy(ptrInfo->dataBuffer, package, sizeof(TPackage));
+	memcpy(ptrInfo->dataBuffer, &package, sizeof(TPackage));
+	memcpy(ptrInfo->dataBuffer + sizeof(TPackage), filepath, package.filepathLen);
 	sem_post(&sharedMemContext->semCanRead);
-	free(package);
 
 }
