@@ -1,6 +1,8 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+#include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 #include <semaphore.h>
 #include <errno.h>
@@ -10,6 +12,37 @@
 #include "shmAppHandler.h"
 #include "./../shared/memhelper.h"
 #include "./../shared/constants.h"
+
+/**
+ * Generates a name to use for the shared memory.
+ *
+ * Returns a pointer to an allocated string which the
+ * caller is responsible for freeing, or NULL on error.
+ */
+static char* generateShmName() {
+	// Doesnt include a '/' as first char nor the terminating '\0'.
+	const int nameLength = 6; 
+	
+	// Used for the seeding the rand_r.
+	unsigned int seed = (unsigned int)(time(NULL) ^ getpid());
+	
+	char* s;
+	if (!tryMalloc((void**)&s, nameLength + 2))
+		return NULL;
+	
+	s[0] = '/';
+	s[nameLength + 1] = '\0';
+	
+	// The name will consist of interleaved vowels and consonants.
+	for (int i=0; i<nameLength; i++) {
+		if (i % 2 == 0)
+			s[i + 1] = "BCDFGHJKLMNPQRTSVWXYZ"[rand_r(&seed) % 21];
+		else
+			s[i + 1] = "AEIOU"[rand_r(&seed) % 5];
+	}
+	
+	return s;
+}
 
 int viewOutputBegin(TAppContext* appContext) {
 	appContext->shmInfo.shmStart = NULL;
@@ -31,9 +64,12 @@ int viewOutputBegin(TAppContext* appContext) {
 	fprintf(stderr, "[Master] Initializing shared memory.\n");
 #endif
 
+	char* shmName = generateShmName();
+
 	// Creation of shared mem and semaphores.
-	if (!resourceInit("/myShm", MAX_SHM_SIZE, &appContext->shmInfo)) {
+	if (!resourceInit(shmName, MAX_SHM_SIZE, &appContext->shmInfo)) {
 		appContext->shmInfo.shmStart = NULL;
+		free(shmName);
 		return 0;
 	}
 	
@@ -44,7 +80,7 @@ int viewOutputBegin(TAppContext* appContext) {
 #endif
 	
 	// Print the shared memory's name and size to STDOUT.
-	printf("%s:%lu\n", appContext->shmInfo.shmName, appContext->shmInfo.shmSize);
+	printf("%s:%lu\n", appContext->shmInfo.shmName, (unsigned long)appContext->shmInfo.shmSize);
 	fflush(stdout);
 	
 	// Wait until the view ack, or a timeout expires.
@@ -59,6 +95,7 @@ int viewOutputBegin(TAppContext* appContext) {
 			perror("[Master] Error: Failed to sem_timedwait while waiting for view");
 		
 		resourceUnlink(&appContext->shmInfo);
+		free(shmName);
 		appContext->shmInfo.shmStart = NULL;
 		return 0;
 	}
@@ -96,6 +133,7 @@ void viewOutputEnd(TAppContext* appContext) {
 		
 		// View is disconnected. We can now close the memory.
 		resourceUnlink(&appContext->shmInfo);
+		free((void*)appContext->shmInfo.shmName);
 		appContext->shmInfo.shmStart = NULL;
 	}
 }

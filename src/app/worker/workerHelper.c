@@ -32,7 +32,7 @@ void interpretMinisatOutput(FILE* f, TWorkerResult* result) {
 	result->timeSeconds = 0;
 	
 	char  c;
-	int matches = fscanf(f, "%u\n%u\n%lf\n%c", &result->cantidadClausulas, &result->cantidadVariables, &result->timeSeconds, &c);
+	int matches = fscanf(f, "%10u\n%10u\n%16lf\n%c", &result->cantidadClausulas, &result->cantidadVariables, &result->timeSeconds, &c);
 	
 	if (matches < 4) {
 		result->status = Error;

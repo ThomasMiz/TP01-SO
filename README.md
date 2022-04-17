@@ -22,7 +22,7 @@ Todos los ejecutables generados son ubicados en el root del repositorio. Los fla
 Un requerimiento que precisa el programa para correr es tener instalado _minisat_. Esto se puede instalar fácilmente en el contenedor docker con `apt-get`, corriendo el comando:
 
 ```sh
-apt-get minisat
+apt-get install minisat
 ```
 
 Una vez generados los ejecutables, archivos con fórmulas en el formato _DIMACS CNF_ pueden ser pasados por parámetro al solve, por ejemplo ejecutando:
@@ -45,11 +45,11 @@ La otra forma es ejecutar el solve sin el pipe hacia vista, en cuyo caso se va a
 
 ```sh
 ./solve formulas/*.cnf
-/ABCDEFGH:1234
+/MIKALU:4096
 ```
 
 Este debe luego ser pasado como parámetro al proceso vista antes de que expire un timeout de 10 segundos:
 
 ```sh
-./vista /ABCDEFGH:1234
+./vista /MIKALU:4096
 ```

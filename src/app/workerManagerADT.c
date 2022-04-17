@@ -198,9 +198,9 @@ workerManagerADT newWorkerManager(unsigned int workerCount) {
 		// Both of these arrays are zeroed on allocation, so if performWorkerSpawning()
 		// didn't create a fd yet it's left as 0. We close all the non-zero ones.
 		for (int i=0; i<workerCount; i++) {
-			if (manager->requestPipeWriteFds[i])
+			if (manager->requestPipeWriteFds[i] > 0)
 				close(manager->requestPipeWriteFds[i]);
-			if (manager->pollFds[i].fd)
+			if (manager->pollFds[i].fd > 0)
 				close(manager->pollFds[i].fd);
 		}
 		freeWorkerManager(manager);

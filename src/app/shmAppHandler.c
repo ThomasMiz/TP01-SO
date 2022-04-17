@@ -17,9 +17,11 @@
 #include "./../shared/constants.h"
 
 int resourceInit(const char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
-	// This practice was recommended in class to avoid issues when the program was interrupted and relaunched (not beeing
-	// able to correctly close and clean shmem)
-	shm_unlink(shmName);
+	// This practice was recommended in class to avoid issues when the program was
+	// interrupted and relaunched (not beeing able to correctly close and clean shmem)
+	/* if (!shm_unlink(shmName)) {
+		fprintf(stderr, "[Master] Warning: previously opened shared memory named \"%s\" was closed.\n", shmName);
+	}*/
 
 	// Open the shared memory object
 	int shmFDes = shm_open(shmName, O_CREAT | O_RDWR | O_EXCL, S_IWUSR | S_IRUSR);

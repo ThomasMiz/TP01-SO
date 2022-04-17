@@ -11,7 +11,8 @@ int fileOutputBegin(TAppContext* appContext) {
 	
 	// We print an error if the file couldn't be opened.
 	if (!file) {
-		perror("[Master] Error: Failed to create file %s for writting output");
+		fprintf(stderr, "[Master] Error: Failed to create file %s for writting output", RESULT_OUTPUT_FILE);
+		perror(NULL);
 		return 0;
 	}
 	
