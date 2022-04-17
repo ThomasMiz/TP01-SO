@@ -2,18 +2,16 @@
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <errno.h>
-
 #include "shmViewHandler.h"
-#include "./../shared/constants.h"
 #include "./../shared/shmHandler.h"
+#include "./../shared/constants.h"
 
 int main(int argc, const char* argv[]) {		//Recibe nombre:size
 
 	if (argc > 2) {
-		printf("Too many arguments: %d \n", argc);
-        exit(EXIT_FAILURE);
+		printf("[View] Error: Too many arguments: %d \n", argc);
+        return EXIT_FAILURE;
 	}
 	
 	// Disable buffering the output.
@@ -28,6 +26,17 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 	else {
 		matches = fscanf(stdin, "%10[/a-zA-Z]:%lu", shmName, &shmSize);
 	}
+	
+	if (matches < 2) {
+		printf("[View] Error: shared memory signature not in the right format.");
+		return EXIT_FAILURE;
+	}
+	
+	if (shmSize > MAX_SHM_SIZE) {
+		printf("[View] Error: invalid shared memory size: %lu but max allowed is %lu.", shmSize, (unsigned long)MAX_SHM_SIZE);
+		return EXIT_FAILURE;
+	}
+	
 #if DEBUG_PRINTS == 1
 	printf("[View] Connecting to %s with size %lu.\n", shmName, shmSize);
 #endif

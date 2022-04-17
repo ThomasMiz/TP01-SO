@@ -1,7 +1,7 @@
 #ifndef _MEMHELPER_H_
 #define _MEMHELPER_H_
 
-#include <stddef.h>
+#include <stdlib.h>
 #include <semaphore.h>
 
 /**

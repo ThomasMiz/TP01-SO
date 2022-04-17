@@ -57,6 +57,7 @@ dkms.conf
 *.csv
 *.cnf
 .config/*
+valgrind_log.txt
 
 # PVS-Studio files
 PVS-Studio.log

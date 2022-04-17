@@ -9,7 +9,7 @@ static void onWorkerResult(workerManagerADT sender, unsigned int workerId, const
 static void onWorkerClosed(workerManagerADT sender, unsigned int workerId, void* arg);
 int main(int argc, const char* argv[]) {
 	if (argc <= 1) {
-		fprintf(stderr, "[Master] Error: no input files.\n");
+		fprintf(stderr, "[Master] Error: No input files.\n");
 		return EXIT_CODE_NOT_ENOUGH_PARAMS;	}
 	// We create a context struct and fill it up with initial data.	TAppContext appContext;	appContext.files = &argv[1];	appContext.fileCount = argc - 1;	appContext.filesSent = 0;	appContext.resultsReceived = 0;
 	// Create a new workerManager with the desired amount of workers.

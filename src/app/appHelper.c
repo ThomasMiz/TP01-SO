@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "appHelper.h"
-#include "app.h"
-#include "workerManagerADT.h"
 #include "./../shared/constants.h"
 
 unsigned int decideWorkerCount(unsigned int fileCount) {

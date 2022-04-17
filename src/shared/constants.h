@@ -30,7 +30,7 @@
 /**
  * Define this to 1 to compile with debug prints enabled.
  */
-#define DEBUG_PRINTS 1
+#define DEBUG_PRINTS 0
 
 #define EXIT_CODE_NOT_ENOUGH_PARAMS 1
 #define EXIT_CODE_CREATE_PIPE_FAILED 2

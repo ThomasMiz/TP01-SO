@@ -2,15 +2,11 @@
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <semaphore.h>
-#include <signal.h>
 #include <errno.h>
-#include "app.h"
-#include "appHelper.h"
-#include "workerManagerADT.h"
-#include "fileOutput.h"
+#include <time.h>
 #include "viewOutput.h"
+#include "app.h"
 #include "shmAppHandler.h"
 #include "./../shared/memhelper.h"
 #include "./../shared/constants.h"

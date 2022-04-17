@@ -1,15 +1,12 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-#include <unistd.h>
+//#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <semaphore.h>
 #include <sys/shm.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <sys/mman.h>
-#include <sys/stat.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/fcntl.h>

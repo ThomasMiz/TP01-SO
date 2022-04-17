@@ -2,7 +2,6 @@
 #define _APP_H_
 
 #include <stdio.h>
-#include <time.h>
 #include "./../shared/shmHandler.h"
 
 /** Stores context information about the app process. */
