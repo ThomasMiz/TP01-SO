@@ -44,6 +44,11 @@
 #define MAX_SHM_SIZE 4096
 
 /**
+ * The length of the shared memory's name, excluding the starting '/'.
+ */
+#define SHM_NAME_LENGTH 6
+
+/**
  * Define the max time the APP process waits for the view to connect
  * in seconds.
  */

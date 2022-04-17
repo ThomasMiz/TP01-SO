@@ -20,21 +20,18 @@
  * caller is responsible for freeing, or NULL on error.
  */
 static char* generateShmName() {
-	// Doesnt include a '/' as first char nor the terminating '\0'.
-	const int nameLength = 6; 
-	
 	// Used for the seeding the rand_r.
 	unsigned int seed = (unsigned int)(time(NULL) ^ getpid());
 	
 	char* s;
-	if (!tryMalloc((void**)&s, nameLength + 2))
+	if (!tryMalloc((void**)&s, SHM_NAME_LENGTH + 2))
 		return NULL;
 	
 	s[0] = '/';
-	s[nameLength + 1] = '\0';
+	s[SHM_NAME_LENGTH + 1] = '\0';
 	
 	// The name will consist of interleaved vowels and consonants.
-	for (int i=0; i<nameLength; i++) {
+	for (int i=0; i<SHM_NAME_LENGTH; i++) {
 		if (i % 2 == 0)
 			s[i + 1] = "BCDFGHJKLMNPQRTSVWXYZ"[rand_r(&seed) % 21];
 		else
