@@ -1,20 +1,21 @@
-#ifndef _SHMHANDLER_H_
-#define _SHMHANDLER_H_
+#ifndef _SHM_HANDLER_H_
+#define _SHM_HANDLER_H_
 
 #include <semaphore.h>
-#include "./../shared/satResult.h" //Because we need to know the struct of result in view and app
+#include "./../shared/satResult.h"
 
 typedef struct {
     sem_t semCanRead;
     sem_t semCanWrite;
-	size_t bytesSent;
 } TSharedMemContext;
 
 typedef struct {
     void* shmStart;
 	size_t shmSize;
-	char* shmName;
+	
+	const char* shmName;
 	int shmFDes;
+	
 	void* dataBuffer;
 	size_t dataBufferSize;
 } TSharedMem;

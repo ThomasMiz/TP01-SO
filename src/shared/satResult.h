@@ -7,6 +7,10 @@
  */
 enum SatResult { Sat, Unsat, Error };
 
+/**
+ * Returns a human-readable string representing the given
+ * SatResult.
+ */
 const char* satResultToString(enum SatResult satResult);
 
 #endif

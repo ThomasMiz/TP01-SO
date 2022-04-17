@@ -38,6 +38,12 @@ static int runMinisat(const TWorkerRequest* request, TWorkerResult* result, char
 
 	FILE* f = popen(buf, "r");
 	
+	if (f == NULL) {
+		fprintf(stderr, "[Worker] Error: Failed to run popen() with: %s\n", buf);
+		perror("Reason");
+		return 0;
+	}
+	
 	interpretMinisatOutput(f, result);
 	
 	pclose(f);
@@ -58,7 +64,7 @@ int main(int argc, const char* argv[]) {
 		// We attempt to run minisat and get an output result. If a fatal
 		// error occurs, we break to free remaining memory and exit.
 		if (!runMinisat(&request, &result, &buf, &bufLen)) {
-			exitCode = EXIT_CODE_NOT_ENOUGH_MEMORY;
+			exitCode = EXIT_FAILURE;
 			break;
 		}
 		
@@ -67,6 +73,5 @@ int main(int argc, const char* argv[]) {
 	}
 	
 	free(buf);
-	
-	exit(exitCode);
+	return exitCode;
 }

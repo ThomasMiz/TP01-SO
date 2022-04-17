@@ -18,7 +18,7 @@ int readWorkerRequest(int fd, TWorkerRequest* request, char** filepathBuf, size_
 
 /***
  * Interprets the output of the grep-ed minisat and writes
- * to the result struct cantidadVariables, cantidadClausulas,
+ * to the result struct's cantidadVariables, cantidadClausulas,
  * timeNanoseconds and status.
  *
  * This function is a simple parser that expects something like this:

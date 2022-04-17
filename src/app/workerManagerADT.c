@@ -154,7 +154,7 @@ static int performWorkerSpawning(workerManagerADT manager) {
 
 workerManagerADT newWorkerManager(unsigned int workerCount) {
 	if (workerCount == 0) {
-		fprintf(stderr, "[Master] Worker manager warning: New worker manager created with workerCount = 0.\n");
+		fprintf(stderr, "[Master] Worker manager error: New worker manager created with workerCount = 0.\n");
 		return NULL;
 	}
 	
@@ -211,6 +211,9 @@ workerManagerADT newWorkerManager(unsigned int workerCount) {
 }
 
 void freeWorkerManager(workerManagerADT manager) {
+	if (manager == NULL)
+		return;
+	
 	// Close the result pipes of any remaining workers.
 	for (int i=0; i < manager->remainingWorkerCount; i++)
 		close(manager->pollFds[i].fd);

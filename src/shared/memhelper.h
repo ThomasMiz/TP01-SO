@@ -2,6 +2,7 @@
 #define _MEMHELPER_H_
 
 #include <stddef.h>
+#include <semaphore.h>
 
 /**
  * Provides some basic wrappers around memory management functions
@@ -51,5 +52,13 @@ int writeFull(int fd, const void* buf, size_t count);
  * Returns 1 if the operation succeeded, 0 if errors were encountered.
  */
 int readFull(int fd, void* buf, size_t count);
+
+/**
+ * A wrapper around sem_wait() which ensures the operation does not
+ * return preemtively in case of a signal interrupt.
+ *
+ * Returns 1 if the operation succeeded, 0 if errors were encountered.
+ */
+int sem_wait_nointr(sem_t* sem);
 
 #endif

@@ -24,20 +24,15 @@ typedef struct {
 	
 	/**
 	 * The handle of the file to which result outputs are written.
-	 * Should only be used in output.c.
+	 * Should only be used in fileOutput.c.
 	 */
 	FILE* resultOutputFile;
 	
 	/**
-	* Structure where all the information of the shm is saved
-	*/
-	TSharedMem ptrInfo;
+	 * Structure where all the information of the shm is saved.
+	 */
+	TSharedMem shmInfo;
 	
-	/**
-	* Pointer to the start of the shm where we have 2 semph and
-	* the length of the buffer sent
-	**/
-	TSharedMemContext* sharedMemContext;	
 } TAppContext;
 
 #endif

@@ -12,21 +12,24 @@
 int main(int argc, const char* argv[]) {		//Recibe nombre:size
 
 	if (argc > 2) {
-		fprintf(stderr, "Too many arguments: %d \n", argc);
+		printf("Too many arguments: %d \n", argc);
         exit(EXIT_FAILURE);
 	}
+	
+	// Disable buffering the output.
+	setvbuf(stdout, NULL, _IONBF, 0);
 
 	char shmName[11];
 	size_t shmSize = 0;
 	
 	int matches;
 	if (argc == 2)
-		matches = sscanf(argv[1], "%[/a-zA-Z]:%lu", shmName, &shmSize);
-	else
-		matches = fscanf(stdin, "%[/a-zA-Z]:%lu\n", shmName, &shmSize);
-	
+		matches = sscanf(argv[1], "%10[/a-zA-Z]:%lu", shmName, &shmSize);
+	else {
+		matches = fscanf(stdin, "%10[/a-zA-Z]:%lu", shmName, &shmSize);
+	}
 #if DEBUG_PRINTS == 1
-	fprintf(stderr, "[View] Connecting to %s with size %lu.\n", shmName, shmSize);
+	printf("[View] Connecting to %s with size %lu.\n", shmName, shmSize);
 #endif
 
 	TSharedMem ptrInfo;
@@ -37,19 +40,24 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 	char* privStr = NULL;
 	size_t privStrMaxLen = 0;
 	
-	fprintf(stderr, "Posting semCanWrite");
-	if (sem_post(&sharedMemContext->semCanRead)) {
+#if DEBUG_PRINTS == 1
+	fprintf(stderr, "[View] Ack by posting to semCanRead.\n");
+#endif
+
+	if (sem_post(&sharedMemContext->semCanWrite)) {
 		perror(NULL);
 		exit(-1);
 	}
 	
-	fprintf(stderr, "La willy willy");
-	while (readShm(&ptrInfo, &privPackage, &privStr, &privStrMaxLen)) {
+	while (readShm(&ptrInfo, &privPackage, &privStr, &privStrMaxLen) && privPackage.filepathLen != 0) {
 		printf("\"%s\", %u, %u, %s, %f, %u \n", privStr, privPackage.cantidadClausulas, privPackage.cantidadVariables,
 			satResultToString(privPackage.status), privPackage.timeSeconds, privPackage.workerId);
 	}
-	
-	resourceClose(&ptrInfo);
 
+#if DEBUG_PRINTS == 1
+	fprintf(stderr, "[View] Closing.\n");
+#endif
+
+	resourceClose(&ptrInfo);
 	return 0;
 }

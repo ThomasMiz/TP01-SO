@@ -4,6 +4,7 @@
 /** The name of the executable file containing the worker process. */
 #define WORKER_EXEC_FILE "./worker"
 
+/** The name of the file to which the results are written. */
 #define RESULT_OUTPUT_FILE "result.csv"
 
 /**
@@ -38,13 +39,14 @@
 #define EXIT_CODE_EXEC_FAILED 5
 
 /**
-* Define of the max quantity of bytes that can be asigned to the SHM 
-*/
+ * Define of the max quantity of bytes that can be asigned to the SHM.
+ */
 #define MAX_SHM_SIZE 4096
 
 /**
-* Define the max time sem_timedwait waits in sec
-*/
+ * Define the max time the APP process waits for the view to connect
+ * in seconds.
+ */
 #define MAX_TIME_WAIT 10
 
 #endif

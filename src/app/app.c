@@ -1,6 +1,8 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-#include <stdio.h>#include <assert.h>#include <semaphore.h>#include <signal.h>#include <errno.h>#include "app.h"#include "appHelper.h"#include "workerManagerADT.h"#include "output.h"#include "shmAppHandler.h"#include "./../shared/constants.h"
+#include <stdlib.h>
+#include <stdio.h>#include "app.h"#include "appHelper.h"#include "workerManagerADT.h"#include "fileOutput.h"
+#include "viewOutput.h"#include "./../shared/constants.h"
 /** Callback function for whenever a worker returns a result. */
 static void onWorkerResult(workerManagerADT sender, unsigned int workerId, const TWorkerResult* result, void* arg);
 /** Callack function for whenever a worker closes.*/
@@ -9,39 +11,32 @@ int main(int argc, const char* argv[]) {
 	if (argc <= 1) {
 		fprintf(stderr, "[Master] Error: no input files.\n");
 		return EXIT_CODE_NOT_ENOUGH_PARAMS;	}
-	// We create a context struct and fill it up with initial data.	TAppContext appContext;	appContext.files = &argv[1];	appContext.fileCount = argc - 1;	appContext.filesSent = 0;	appContext.resultsReceived = 0;
-	
-	// Wait time until view responds.
-	struct timespec ts;
-	if (clock_gettime(CLOCK_REALTIME, &ts) == -1) {
-		perror("clock_gettime"); 
-		return EXIT_FAILURE;
-	}
-	ts.tv_sec += MAX_TIME_WAIT;
-	// Creation of shared mem and semaphores.	resourceInit("/myShm", MAX_SHM_SIZE, &appContext.ptrInfo);	appContext.sharedMemContext = appContext.ptrInfo.shmStart;	printf("%s:%lu\n", appContext.ptrInfo.shmName, appContext.ptrInfo.shmSize);
-	
-	// Wait until the view ack, or a timeout expires.
-	int s;
-	while ((s = sem_timedwait(&appContext.sharedMemContext->semCanRead, &ts)) == -1 && errno == EINTR);
-	// Check what happened
-	if (s == -1) {		if (errno == ETIMEDOUT)			printf("View not connected.\n");
-		else
-			perror("sem_timedwait");
-	} else {
-		printf("View connected!\n");
-	}
-
-	// Tell output.c to prepare for outputting results.
-	int hasOutputFile = onOutputBegin(&appContext);
+	// We create a context struct and fill it up with initial data.	TAppContext appContext;	appContext.files = &argv[1];	appContext.fileCount = argc - 1;	appContext.filesSent = 0;	appContext.resultsReceived = 0;
 	// Create a new workerManager with the desired amount of workers.
 	workerManagerADT workerManager = newWorkerManager(decideWorkerCount(appContext.fileCount));
 	if (workerManager == NULL) {
 		fprintf(stderr, "[Master] Error: failed to create worker manager. Aborting.\n");
 		return 1;
-	}
+	}
+
 #if DEBUG_PRINTS == 1
 	fprintf(stderr, "[Master] Number of workers: %u\n", getRemainingWorkerCount(workerManager));
-#endif
+#endif
+
+	// Tell viewOutput.c to connect to a view if it can.
+	int hasViewOutput = viewOutputBegin(&appContext);
+	
+	// Tell fileOutput.c to prepare for outputting results.
+	int hasFileOutput = fileOutputBegin(&appContext);
+	
+	// If none of the result outputs is working, why even solve those files?
+	if (!hasViewOutput && !hasFileOutput) {
+		fprintf(stderr, "[Master] Error: Failed to open file or connect to view. Aborting.\n");
+		fileOutputEnd(&appContext);
+		viewOutputEnd(&appContext);
+		freeWorkerManager(workerManager);
+		return EXIT_FAILURE;
+	}
 	// Set the callbacks on the workerManager. The parameter for the
 	// callbacks is a pointer to our app context struct. This is memory
 	// safe even though appContext is on the stack because the lifetime
@@ -60,9 +55,10 @@ int main(int argc, const char* argv[]) {
 	pollUntilFinished(workerManager);
 	// We free up all resources used by the workerManager.
 	freeWorkerManager(workerManager);
-	// Tell output.c that there are no more results to output.
-	onOutputEnd(&appContext);
-	if (hasOutputFile)
+	// Notify to the outputs that there are no more results to output.
+	fileOutputEnd(&appContext);
+	viewOutputEnd(&appContext);
+	if (hasFileOutput)
 		printf("Done. Results saved in file %s.\n", RESULT_OUTPUT_FILE);
 	else
 		printf("Done. Results not saved because file %s couldn't be opened.\n", RESULT_OUTPUT_FILE);
@@ -92,11 +88,9 @@ static void onWorkerResult(workerManagerADT sender, unsigned int workerId, const
 		fprintf(stderr, "[Master] Error: Worker %u returned result with invalid taskId %u.\n", workerId, result->taskId);
 		filepath = "?";
 	}
-	// Send the result to output.c
-	onOutputResult(appContext, workerId, result, filepath);
-	
-	// Send the result to SHM
-	outputToShm(&appContext->ptrInfo, workerId, result, filepath);
+	// Send the result to fileOutput.c and viewOutput.c
+	fileOutputResult(appContext, workerId, result, filepath);
+	viewOutputResult(appContext, workerId, result, filepath);
 }
 static void onWorkerClosed(workerManagerADT sender, unsigned int workerId, void* arg) {
 #if DEBUG_PRINTS == 1

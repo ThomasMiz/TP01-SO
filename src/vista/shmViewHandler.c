@@ -16,6 +16,7 @@
 #include <string.h>
 #include "shmViewHandler.h"
 #include "./../shared/memhelper.h"
+#include "./../shared/constants.h"
 
 void resourceOpen(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
 
@@ -49,19 +50,20 @@ int readShm(TSharedMem* ptrInfo, TPackage* destination, char** privStr, size_t* 
 
 	TSharedMemContext* sharedMemContext = ptrInfo->shmStart;
 	
-	sem_wait(&sharedMemContext->semCanRead);
-	
+	sem_wait_nointr(&sharedMemContext->semCanRead);
 	memcpy(destination, ptrInfo->dataBuffer, sizeof(TPackage));
-	
-	if(!tryReallocIfNecessary((void**) privStr, privStrMaxLen, destination->filepathLen + 1)) {
-		fprintf(stderr, "Failed to alloc for cmd length %u.\n", destination->filepathLen + 1);
-		return 0;
+	if (destination->filepathLen) {
+		if (!tryReallocIfNecessary((void**) privStr, privStrMaxLen, destination->filepathLen + 1)) {
+			fprintf(stderr, "Failed to alloc for cmd length %u.\n", destination->filepathLen + 1);
+			return 0;
+		}
+		memcpy(*privStr, ptrInfo->dataBuffer + sizeof(TPackage), destination->filepathLen);
 	}
-	memcpy(*privStr, ptrInfo->dataBuffer + sizeof(TPackage), destination->filepathLen);
 	
 	sem_post(&sharedMemContext->semCanWrite);
 	
-	(*privStr)[destination->filepathLen] = '\0';
+	if (destination->filepathLen)
+		(*privStr)[destination->filepathLen] = '\0';
 	
 	return 1;
 

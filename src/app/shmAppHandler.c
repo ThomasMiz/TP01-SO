@@ -16,52 +16,68 @@
 #include <string.h>
 #include "shmAppHandler.h"
 #include "./../shared/satResult.h"
+#include "./../shared/memhelper.h"
+#include "./../shared/constants.h"
 
-void resourceInit(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
-    // This practice was recommended in class to avoid issues when the program was interrupted and relaunched (not beeing
+int resourceInit(const char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
+	// This practice was recommended in class to avoid issues when the program was interrupted and relaunched (not beeing
 	// able to correctly close and clean shmem)
 	shm_unlink(shmName);
 
 	// Open the shared memory object
 	int shmFDes = shm_open(shmName, O_CREAT | O_RDWR | O_EXCL, S_IWUSR | S_IRUSR);
-	if(shmFDes < 0) {
-		perror("shm_open failed");
-		exit(EXIT_FAILURE);
+	if (shmFDes < 0) {
+		perror("[Master] Failed to shm_open");
+		return 0;
 	}
 
 	// Preallocate a shared memory area
-	if(ftruncate(shmFDes, shmSize) == -1) {
-		perror("ftruncate failed");
-    	exit(EXIT_FAILURE);
-	}
-	void* shmStart = mmap(NULL, shmSize, PROT_WRITE | PROT_READ, MAP_SHARED, shmFDes, 0);
-	if(shmStart == MAP_FAILED) {
-		perror("mmap failed");
-    	exit(EXIT_FAILURE);
+	if (ftruncate(shmFDes, shmSize) == -1) {
+		perror("[Master] Failed to ftruncate");
+		close(shmFDes);
+		shm_unlink(shmName);
+    	return 0;
 	}
 	
-	ptrInfoSave->shmStart = shmStart;
-	ptrInfoSave->shmSize = shmSize;
-	ptrInfoSave->shmName= shmName;
-	ptrInfoSave->shmFDes = shmFDes;
-	ptrInfoSave->dataBuffer = shmStart + sizeof(TSharedMemContext);
-	ptrInfoSave->dataBufferSize = shmSize - sizeof(TSharedMemContext);
+	void* shmStart = mmap(NULL, shmSize, PROT_WRITE | PROT_READ, MAP_SHARED, shmFDes, 0);
+	if (shmStart == MAP_FAILED) {
+		perror("[Master] Failed to mmap");
+		close(shmFDes);
+		shm_unlink(shmName);
+    	return 0;
+	}
 	
 	TSharedMemContext* sharedMemContext = shmStart;
 
     // Initialize semaphores
-    if(sem_init(&sharedMemContext->semCanWrite, 1, 1)) {
-        perror("sem_init failed");
-	    exit(EXIT_FAILURE);
+    if (sem_init(&sharedMemContext->semCanWrite, 1, 0)) {
+        perror("[Master] Failed to sem_init semaphore 1");
+		munmap(shmStart, shmSize);
+		close(shmFDes);
+		shm_unlink(shmName);
+	    return 0;
     }
-    if(sem_init(&sharedMemContext->semCanRead, 1, 0)) {
-        perror("sem_init failed");
-	    exit(EXIT_FAILURE);
+	
+    if (sem_init(&sharedMemContext->semCanRead, 1, 0)) {
+        perror("[Master] Failed to sem_init semaphore 2");
+	    sem_destroy(&sharedMemContext->semCanWrite);
+		munmap(shmStart, shmSize);
+		close(shmFDes);
+		shm_unlink(shmName);
+		return 0;
     }
+	
+	ptrInfoSave->shmStart = shmStart;
+	ptrInfoSave->shmSize = shmSize;
+	ptrInfoSave->shmName = shmName;
+	ptrInfoSave->shmFDes = shmFDes;
+	ptrInfoSave->dataBuffer = shmStart + sizeof(TSharedMemContext);
+	ptrInfoSave->dataBufferSize = shmSize - sizeof(TSharedMemContext);
+	return 1;
 }
 
-void resourceUnlink(void* shmStart, TSharedMem* ptrInfo) {
-	TSharedMemContext* sharedMemContext = shmStart;
+void resourceUnlink(TSharedMem* ptrInfo) {
+	TSharedMemContext* sharedMemContext = ptrInfo->shmStart;
 
 	sem_destroy(&sharedMemContext->semCanRead);
 	sem_destroy(&sharedMemContext->semCanWrite);
@@ -86,7 +102,12 @@ void outputToShm(const TSharedMem* ptrInfo, unsigned int workerId, const TWorker
 	if (freeBuffSize < package.filepathLen)
 		package.filepathLen = freeBuffSize;
 	
-	sem_wait(&sharedMemContext->semCanWrite);
+#if DEBUG_PRINTS == 1
+	fprintf(stderr, "[Master] Writting to shm: \"%s\" (len %u), %u, %u, %s, %f, %u \n", filepath, package.filepathLen, package.cantidadClausulas, package.cantidadVariables,
+			satResultToString(package.status), package.timeSeconds, package.workerId);
+#endif
+
+	sem_wait_nointr(&sharedMemContext->semCanWrite);
 	memcpy(ptrInfo->dataBuffer, &package, sizeof(TPackage));
 	memcpy(ptrInfo->dataBuffer + sizeof(TPackage), filepath, package.filepathLen);
 	sem_post(&sharedMemContext->semCanRead);

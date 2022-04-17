@@ -1,8 +1,6 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
 #include "memhelper.h"
@@ -11,8 +9,7 @@
 #define READ_MAX_FAILS 3
 #define WRITE_MAX_FAILS 3
 
-int tryMalloc(void** ptr, size_t size)
-{
+int tryMalloc(void** ptr, size_t size) {
     void* newPtr = malloc(size);
     if (newPtr == NULL)
         return 0;
@@ -21,8 +18,7 @@ int tryMalloc(void** ptr, size_t size)
     return 1;
 }
 
-int tryRealloc(void** ptr, size_t newSize)
-{
+int tryRealloc(void** ptr, size_t newSize) {
     void* newPtr = realloc(*ptr, newSize);
     if (newPtr == NULL)
         return 0;
@@ -31,8 +27,7 @@ int tryRealloc(void** ptr, size_t newSize)
     return 1;
 }
 
-int tryCalloc(void** ptr, size_t nmemb, size_t size)
-{
+int tryCalloc(void** ptr, size_t nmemb, size_t size) {
     void* newPtr = calloc(nmemb, size);
     if (newPtr == NULL)
         return 0;
@@ -62,7 +57,7 @@ int writeFull(int fd, const void* buf, size_t count) {
 			bytesWritten += r;
 		}
 		
-	} while(bytesWritten < count);
+	} while (bytesWritten < count);
 	
 	return 1;
 }
@@ -88,7 +83,16 @@ int readFull(int fd, void* buf, size_t count) {
 			bytesRead += r;
 		}
 		
-	} while(bytesRead < count);
+	} while (bytesRead < count);
 	
 	return 1;
+}
+
+int sem_wait_nointr(sem_t* sem) {
+	int c;
+	do {
+		c = sem_wait(sem);
+	} while (c == -1 && errno == EINTR);
+	
+	return c == 0;
 }

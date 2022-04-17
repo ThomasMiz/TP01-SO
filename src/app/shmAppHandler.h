@@ -1,5 +1,5 @@
-#ifndef _SHMAPPHANDLER_H_
-#define _SHMAPPHANDLER_H_
+#ifndef _SHM_APP_HANDLER_H_
+#define _SHM_APP_HANDLER_H_
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -7,8 +7,8 @@
 #include "./../shared/shmHandler.h"
 #include "communication.h"
 
-void resourceInit(char* shmPath, size_t shmSize, TSharedMem* ptrInfoSave);
-void resourceUnlink(void* shmStart, TSharedMem* ptrInfoSave);
+int resourceInit(const char* shmName, size_t shmSize, TSharedMem* ptrInfoSave);
+void resourceUnlink(TSharedMem* ptrInfo);
 void outputToShm(const TSharedMem* ptrInfo, unsigned int workerId, const TWorkerResult* result, const char* filepath);
 
 #endif
