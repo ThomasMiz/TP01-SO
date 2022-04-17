@@ -12,19 +12,19 @@
 #include "./../shared/memhelper.h"
 #include "./../shared/constants.h"
 
-void resourceOpen(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
+int resourceOpen(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
 
     // Open the shared memory object
 	int shmFDes = shm_open(shmName, O_RDWR | O_EXCL, S_IWUSR | S_IRUSR);
 	if(shmFDes == -1) {
-		perror("shm_open failed");
-		exit(EXIT_FAILURE);
+		perror("[View]: shm_open failed");
+		return 0;
 	}
 
 	void* shmStart = mmap(NULL, shmSize, PROT_WRITE | PROT_READ, MAP_SHARED, shmFDes, 0);
 	if(shmStart == MAP_FAILED) {
-		perror("mmap failed");
-    	exit(EXIT_FAILURE);
+		perror("[View] mmap failed");
+    	return 0;
 	}
 	
 	ptrInfoSave->shmStart = shmStart;
@@ -33,6 +33,8 @@ void resourceOpen(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
 	ptrInfoSave->shmFDes = shmFDes;
 	ptrInfoSave->dataBuffer = shmStart + sizeof(TSharedMemContext);
 	ptrInfoSave->dataBufferSize = shmSize - sizeof(TSharedMemContext);
+	
+	return 1;
 }
 
 void resourceClose(TSharedMem* ptrInfo) {
@@ -48,7 +50,7 @@ int readShm(TSharedMem* ptrInfo, TPackage* destination, char** privStr, size_t* 
 	memcpy(destination, ptrInfo->dataBuffer, sizeof(TPackage));
 	if (destination->filepathLen) {
 		if (!tryReallocIfNecessary((void**) privStr, privStrMaxLen, destination->filepathLen + 1)) {
-			fprintf(stderr, "Failed to alloc for cmd length %u.\n", destination->filepathLen + 1);
+			fprintf(stderr, "[View] Failed to alloc for cmd length %u.\n", destination->filepathLen + 1);
 			return 0;
 		}
 		memcpy(*privStr, ptrInfo->dataBuffer + sizeof(TPackage), destination->filepathLen);

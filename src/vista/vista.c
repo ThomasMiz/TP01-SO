@@ -19,6 +19,7 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 
 	char shmName[11];
 	size_t shmSize = 0;
+	int goodOpen = 0;
 	
 	int matches;
 	if (argc == 2)
@@ -42,7 +43,7 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 #endif
 
 	TSharedMem ptrInfo;
-	resourceOpen(shmName, shmSize, &ptrInfo);
+	goodOpen = resourceOpen(shmName, shmSize, &ptrInfo);
 	TSharedMemContext* sharedMemContext = ptrInfo.shmStart;
 	
 	TPackage privPackage;
@@ -53,12 +54,12 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 	fprintf(stderr, "[View] Ack by posting to semCanRead.\n");
 #endif
 
-	if (sem_post(&sharedMemContext->semCanWrite)) {
+	if (goodOpen && sem_post(&sharedMemContext->semCanWrite)) {
 		perror(NULL);
-		exit(-1);
+		return 0;
 	}
 	
-	while (readShm(&ptrInfo, &privPackage, &privStr, &privStrMaxLen) && privPackage.filepathLen != 0) {
+	while (goodOpen && readShm(&ptrInfo, &privPackage, &privStr, &privStrMaxLen) && privPackage.filepathLen != 0) {
 		printf("\"%s\", %u, %u, %s, %f, %u \n", privStr, privPackage.cantidadClausulas, privPackage.cantidadVariables,
 			satResultToString(privPackage.status), privPackage.timeSeconds, privPackage.workerId);
 	}

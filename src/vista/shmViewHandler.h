@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include "./../shared/shmHandler.h"
 
-void resourceOpen(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave);
+int resourceOpen(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave);
 
 void resourceClose(TSharedMem* ptrInfoSave);
 
