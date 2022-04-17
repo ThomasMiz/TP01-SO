@@ -18,23 +18,25 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 	setvbuf(stdout, NULL, _IONBF, 0);
 
 	char shmName[11];
-	size_t shmSize = 0;
-	int goodOpen = 0;
+	unsigned long shmSize = 0;
 	
 	int matches;
 	if (argc == 2)
-		matches = sscanf(argv[1], "%10[/a-zA-Z]:%lu", shmName, &shmSize);
-	else {
-		matches = fscanf(stdin, "%10[/a-zA-Z]:%lu", shmName, &shmSize);
-	}
+		matches = sscanf(argv[1], "%10[/a-zA-Z]:%10lu", shmName, &shmSize);
+	else
+		matches = fscanf(stdin, "%10[/a-zA-Z]:%10lu", shmName, &shmSize);
 	
 	if (matches < 2) {
-		printf("[View] Error: shared memory signature not in the right format.");
+		printf("[View] Error: shared memory signature not in the right format.\n");
 		return EXIT_FAILURE;
 	}
 	
 	if (shmSize > MAX_SHM_SIZE) {
-		printf("[View] Error: invalid shared memory size: %lu but max allowed is %lu.", shmSize, (unsigned long)MAX_SHM_SIZE);
+		printf("[View] Error: invalid shared memory size: %lu but max allowed is %lu.\n", shmSize, (unsigned long)MAX_SHM_SIZE);
+		return EXIT_FAILURE;
+	}
+	if (shmSize <= (sizeof(TPackage) + sizeof(TSharedMemContext))) {
+		printf("[View] Error: invalid shared memory size: need at least %lu bytes.\n", (unsigned long) (sizeof(TPackage) + sizeof(TSharedMemContext)));
 		return EXIT_FAILURE;
 	}
 	
@@ -43,7 +45,9 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 #endif
 
 	TSharedMem ptrInfo;
-	goodOpen = resourceOpen(shmName, shmSize, &ptrInfo);
+	if(!resourceOpen(shmName, shmSize, &ptrInfo)) {
+		return EXIT_FAILURE;
+	}
 	TSharedMemContext* sharedMemContext = ptrInfo.shmStart;
 	
 	TPackage privPackage;
@@ -54,12 +58,12 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 	fprintf(stderr, "[View] Ack by posting to semCanRead.\n");
 #endif
 
-	if (goodOpen && sem_post(&sharedMemContext->semCanWrite)) {
+	if (sem_post(&sharedMemContext->semCanWrite)) {
 		perror(NULL);
 		return 0;
 	}
 	
-	while (goodOpen && readShm(&ptrInfo, &privPackage, &privStr, &privStrMaxLen) && privPackage.filepathLen != 0) {
+	while (readShm(&ptrInfo, &privPackage, &privStr, &privStrMaxLen) && privPackage.filepathLen != 0) {
 		printf("\"%s\", %u, %u, %s, %f, %u \n", privStr, privPackage.cantidadClausulas, privPackage.cantidadVariables,
 			satResultToString(privPackage.status), privPackage.timeSeconds, privPackage.workerId);
 	}
@@ -69,5 +73,6 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 #endif
 
 	resourceClose(&ptrInfo);
+	free(privStr);
 	return 0;
 }

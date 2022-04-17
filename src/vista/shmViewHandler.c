@@ -17,12 +17,13 @@ int resourceOpen(char* shmName, size_t shmSize, TSharedMem* ptrInfoSave) {
     // Open the shared memory object
 	int shmFDes = shm_open(shmName, O_RDWR | O_EXCL, S_IWUSR | S_IRUSR);
 	if(shmFDes == -1) {
-		perror("[View]: shm_open failed");
+		perror("[View] shm_open failed");
 		return 0;
 	}
 
 	void* shmStart = mmap(NULL, shmSize, PROT_WRITE | PROT_READ, MAP_SHARED, shmFDes, 0);
 	if(shmStart == MAP_FAILED) {
+		close(shmFDes);
 		perror("[View] mmap failed");
     	return 0;
 	}
