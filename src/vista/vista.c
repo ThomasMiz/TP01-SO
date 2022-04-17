@@ -59,13 +59,24 @@ int main(int argc, const char* argv[]) {		//Recibe nombre:size
 #endif
 
 	if (sem_post(&sharedMemContext->semCanWrite)) {
-		perror(NULL);
+		perror("[View] Failed to send ack to app process.\n");
+		resourceClose(&ptrInfo);
 		return 0;
 	}
 	
+	// The output is printed as a table.
+	// Print the first line, which indicates what each column represents.
+	printf("%-50s | %-10s | %-10s | %-10s | %-10s | %-3s\n", "Archivo", "Clausulas", "Variables",
+			"Resultado", "Tiempo", "Worker ID");
+	
 	while (readShm(&ptrInfo, &privPackage, &privStr, &privStrMaxLen) && privPackage.filepathLen != 0) {
-		printf("\"%s\", %u, %u, %s, %f, %u \n", privStr, privPackage.cantidadClausulas, privPackage.cantidadVariables,
-			satResultToString(privPackage.status), privPackage.timeSeconds, privPackage.workerId);
+		if (privPackage.status == Error) {
+			printf("%-50s | %-10s | %-10s | %-10s | %-10f | %-3u\n", privStr, "", "",
+				satResultToString(privPackage.status), privPackage.timeSeconds, privPackage.workerId);
+		} else {
+			printf("%-50s | %-10u | %-10u | %-10s | %-10f | %-3u\n", privStr, privPackage.cantidadClausulas, privPackage.cantidadVariables,
+				satResultToString(privPackage.status), privPackage.timeSeconds, privPackage.workerId);
+		}
 	}
 
 #if DEBUG_PRINTS == 1

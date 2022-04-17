@@ -37,7 +37,14 @@ int tryCalloc(void** ptr, size_t nmemb, size_t size) {
 }
 
 int tryReallocIfNecessary(void** ptr, size_t* size, size_t requiredSize) {
-	return (*size >= requiredSize && *ptr != NULL) ? 1 : tryRealloc(ptr, requiredSize);
+	if (*ptr != NULL && *size >= requiredSize)
+		return 1;
+	
+	if (!tryRealloc(ptr, requiredSize))
+		return 0;
+	
+	*size = requiredSize;
+	return 1;
 }
 
 int writeFull(int fd, const void* buf, size_t count) {
