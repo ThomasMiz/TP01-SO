@@ -52,12 +52,19 @@ int main(int argc, const char* argv[]) {
 	if (appContext.fileCount == appContext.filesSent)
 		closeRemainingWorkers(workerManager);
 	// This function will process all the workers and block until they're all done.
-	pollUntilFinished(workerManager);
+	pollUntilFinished(workerManager);
+
 	// We free up all resources used by the workerManager.
 	freeWorkerManager(workerManager);
 	// Notify to the outputs that there are no more results to output.
 	fileOutputEnd(&appContext);
-	viewOutputEnd(&appContext);
+	viewOutputEnd(&appContext);
+
+	if (appContext.fileCount != appContext.resultsReceived) {
+		fprintf(stderr, "[Master] Warning: Mismatch between total files and results received after all workers have closed. Did a worker crash?.\n");
+		fprintf(stderr, "[Master] Summary: Files received: %u, files sent to workers: %u, results received %u.\n", appContext.fileCount, appContext.filesSent, appContext.resultsReceived);
+		fprintf(stderr, "[Master] Result output may be incomplete.\n");
+	}
 	if (hasFileOutput)
 		printf("Done. Results saved in file %s.\n", RESULT_OUTPUT_FILE);
 	else
