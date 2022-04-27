@@ -128,13 +128,16 @@ static int performWorkerSpawning(workerManagerADT manager) {
 			// Redirect STDIN to the read end of the request pipe.
 			dup2(requestPipe[0], STDIN_FILENO);
 			
+			// Child process closes the pipe's fds, since they're
+			// now accessed through STDIN and STDOUT
+			close(requestPipe[0]);
+			close(resultPipe[1]);
+			
 			execl(WORKER_EXEC_FILE, WORKER_EXEC_FILE, NULL);
 			
 			// This only runs if the exec fails.
 			fprintf(stderr, "[Worker] Worker with id %u failed to exec %s: ", i, WORKER_EXEC_FILE);
 			perror(NULL);
-			close(requestPipe[0]);
-			close(resultPipe[1]);
 			exit(EXIT_CODE_EXEC_FAILED);
 		}
 		
